@@ -1,6 +1,8 @@
 package io.github.jmoore34_csweetman
 
+import com.google.gson.Gson
 import io.ktor.application.*
+import io.ktor.client.request.*
 import io.ktor.response.*
 import io.ktor.request.*
 import io.ktor.routing.*
@@ -15,6 +17,21 @@ import java.time.*
 import io.ktor.gson.*
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
+
+class Room(val roles: MutableList<Role> = mutableListOf(), val connections: MutableList<WebSocketSession> = mutableListOf())
+class Role(val name: String, val quantity: Int)
+
+val rooms = mutableMapOf<String, Room>()
+
+class Message(val chat: Chat? = null,           // send a chat message
+              val name: String? = null      // change username
+) {
+    class Chat(val msg: String, val name: String, val type: ChatType) {
+        enum class ChatType { PUBLIC, ANON, TO_MOD }
+    }
+}
+
+val gson = Gson()
 
 @Suppress("unused") // Referenced in application.conf
 @kotlin.jvm.JvmOverloads
@@ -40,10 +57,6 @@ fun Application.module(testing: Boolean = false) {
         masking = false
     }
 
-    install(ContentNegotiation) {
-        gson {
-        }
-    }
 
     routing {
         get("/") {
@@ -76,13 +89,40 @@ fun Application.module(testing: Boolean = false) {
 
         }
 
-        webSocket("/myws/echo") {
-            send(Frame.Text("Hi from server"))
-            while (true) {
-                val frame = incoming.receive()
-                if (frame is Frame.Text) {
-                    send(Frame.Text("Client said: " + frame.readText()))
+        webSocket("/{roomCode}") {
+            val roomCode = call.parameters["roomCode"] as String?
+            if (roomCode == null || roomCode.isEmpty())
+                send("Error: Must specify a room code")
+
+            send(Frame.Text("Hi from server, you joined $roomCode"))
+            send(gson.toJson(Message(name="bob")))
+            send(gson.toJson(Message(chat = Message.Chat("hallo", "bob", Message.Chat.ChatType.PUBLIC))))
+            if (!rooms.containsKey(roomCode))
+                rooms[roomCode as String] = Room()
+            val room = rooms[roomCode]!!
+            room.connections.add(this)
+
+            send("There are ${room.connections.size} people in this room")
+            room.connections.forEach {
+                if (it != this) it.send("A new user joined!")
+            }
+
+            try {
+                while (true) {
+                    val frame = incoming.receive()
+                    if (frame is Frame.Text) {
+                        room.connections.forEach {
+                            it.send(Frame.Text("Broadcast: " + frame.readText()))
+                        }
+                    }
                 }
+            } catch (e: Throwable) {
+                room.connections.remove(this)
+                room.connections.forEach {
+                    it.send("Another user left.")
+                }
+                if (room.connections.size < 1)
+                    rooms.remove(roomCode)
             }
         }
 
@@ -91,6 +131,9 @@ fun Application.module(testing: Boolean = false) {
         }
     }
 }
+
+@Location("/{roomCode}")
+class WebsocketLocation(val roomCode: String)
 
 @Location("/location/{name}")
 class MyLocation(val name: String, val arg1: Int = 42, val arg2: String = "default")
