@@ -18,20 +18,48 @@ import io.ktor.gson.*
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
-class Room(val roles: MutableList<Role> = mutableListOf(), val connections: MutableList<WebSocketSession> = mutableListOf())
-class Role(val name: String, val quantity: Int)
+class Room(
+    var roles: MutableList<Role> = mutableListOf(),
+    val users: LinkedHashMap<WebSocketSession, User> = linkedMapOf()
+)
+
+fun <T> MutableList<T>.edit(index: Int, newVal: T?) {
+    if (newVal == null)
+        this.removeAt(index)
+    else if (index >= size || index < 0)
+        this.add(newVal)
+    else
+        this[index] = newVal
+}
+
+class Role(val name: String, val quantity: Int, val team: String)
+class User(var name: String = "Unnamed User", var mod: Boolean = false, var role: String = "No role", var team: String = "No team")
 
 val rooms = mutableMapOf<String, Room>()
 
-class Message(val chat: Chat? = null,           // send a chat message
-              val name: String? = null      // change username
+val gson = Gson()
+
+class Message(
+    // 1. Client to server only
+    val name: String? = null,                  // change username
+    val mod: Boolean? = null,
+
+    // 2. Server to client only
+    val assignment: RoleAssignment? = null,    // the server assigns a user a role
+    val users: List<User>? = null,             // the server informs the client of the users in the room
+
+    // 3. Both ways - client sends to server, and server then broadcasts to clients
+    val chat: Chat? = null,                    // send a chat message
+    val roles: List<Role>? = null,             // informs of a change in the roles
 ) {
-    class Chat(val msg: String, val name: String, val type: ChatType) {
-        enum class ChatType { PUBLIC, ANON, TO_MOD }
+    class Chat(val msg: String, val name: String?, val type: ChatType?) {
+        enum class ChatType { PUBLIC, ANON, TO_MOD, TEAM, ROLE }
     }
+    class RoleAssignment(val role: String, val team: String, val requested_by: String)
+    class ListDelta<T>(index: Int, newVal: T)
 }
 
-val gson = Gson()
+suspend fun WebSocketSession.sendMessage(message: Message) = this.send(gson.toJson(message, Message::class.java))
 
 @Suppress("unused") // Referenced in application.conf
 @kotlin.jvm.JvmOverloads
@@ -90,38 +118,91 @@ fun Application.module(testing: Boolean = false) {
         }
 
         webSocket("/{roomCode}") {
-            val roomCode = call.parameters["roomCode"] as String?
+            val roomCode = call.parameters["roomCode"]
             if (roomCode == null || roomCode.isEmpty())
                 send("Error: Must specify a room code")
 
-            send(Frame.Text("Hi from server, you joined $roomCode"))
-            send(gson.toJson(Message(name="bob")))
-            send(gson.toJson(Message(chat = Message.Chat("hallo", "bob", Message.Chat.ChatType.PUBLIC))))
             if (!rooms.containsKey(roomCode))
                 rooms[roomCode as String] = Room()
             val room = rooms[roomCode]!!
-            room.connections.add(this)
 
-            send("There are ${room.connections.size} people in this room")
-            room.connections.forEach {
-                if (it != this) it.send("A new user joined!")
+            room.users[this] = User()
+
+
+            suspend fun broadcast(msg: Message) {
+                room.users.keys.map {
+                    it.sendMessage(msg)
+                }
             }
 
+            suspend fun broadcastUserList() = broadcast(Message(users = room.users.values.toList()))
+            suspend fun broadcastRoles() = broadcast(Message(roles = room.roles.toList()))
+
+            // Inform everyone of the updated user list because this new user joined
+            broadcastUserList()
+
+            sendMessage(Message(roles = room.roles.toList()))
+
             try {
-                while (true) {
-                    val frame = incoming.receive()
+                for (frame in incoming) {
                     if (frame is Frame.Text) {
-                        room.connections.forEach {
-                            it.send(Frame.Text("Broadcast: " + frame.readText()))
+                        val message = gson.fromJson(frame.readText(), Message::class.java)
+
+                        val connections = room.users.keys
+
+                        if (message.roles != null) {
+                            room.roles = message.roles as MutableList<Role>
+                            connections.forEach {
+                                if (it != this)
+                                    it.sendMessage(Message(roles = room.roles))
+                            }
+                        }
+                        else if (message.name != null) {
+                            room.users[this]!!.name = message.name
+                            broadcastUserList()
+                        }
+                        else if (message.chat != null) {
+                            if (message.chat.msg == "/assign") {
+                                val users = room.users.entries.shuffled().iterator()
+                                val requestingUser = room.users[this]!!.name
+                                val roles = room.roles.sortedBy { it.quantity }
+                                outer@ for (role in roles)
+                                    for (i in 1..role.quantity)
+                                        if (users.hasNext()) {
+                                            val user = users.next()
+                                            user.value.role = role.name
+                                            user.value.team = role.team
+                                            user.key.sendMessage((Message(assignment = Message.RoleAssignment(
+                                                                                            role = role.name,
+                                                                                            team = role.team,
+                                                                                            requested_by = requestingUser))))
+                                        } else { break@outer }
+                            } else {
+                                val senderUser = room.users[this]!!
+                                room.users.entries.forEach { (recipientUserSession, recipientUser) ->
+                                    if (message.chat.type == Message.Chat.ChatType.PUBLIC
+                                        || message.chat.type == Message.Chat.ChatType.ANON
+                                        || message.chat.type == Message.Chat.ChatType.TO_MOD && recipientUser.mod
+                                        || message.chat.type == Message.Chat.ChatType.TEAM && recipientUser.team == senderUser.team
+                                        || message.chat.type == Message.Chat.ChatType.ROLE && recipientUser.role == senderUser.role
+                                    )
+                                        recipientUserSession.sendMessage(message)
+                                }
+                            }
+                        }
+                        else if (message.mod != null) {
+                            room.users[this]!!.mod = message.mod
+                            broadcastUserList()
                         }
                     }
                 }
             } catch (e: Throwable) {
-                room.connections.remove(this)
-                room.connections.forEach {
+                val connections = room.users.keys
+                connections.remove(this)
+                connections.forEach {
                     it.send("Another user left.")
                 }
-                if (room.connections.size < 1)
+                if (connections.size < 1)
                     rooms.remove(roomCode)
             }
         }
