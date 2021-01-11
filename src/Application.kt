@@ -15,6 +15,7 @@ import io.ktor.websocket.*
 import io.ktor.http.cio.websocket.*
 import java.time.*
 import io.ktor.gson.*
+import kotlinx.coroutines.channels.ClosedReceiveChannelException
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
@@ -47,16 +48,18 @@ class Message(
     // 2. Server to client only
     val assignment: RoleAssignment? = null,    // the server assigns a user a role
     val users: List<User>? = null,             // the server informs the client of the users in the room
+    val roles: List<Role>? = null,             // informs of a change in the roles
+    val userDelta: ListDelta<User>? = null,    // change one user in the list
 
     // 3. Both ways - client sends to server, and server then broadcasts to clients
     val chat: Chat? = null,                    // send a chat message
-    val roles: List<Role>? = null,             // informs of a change in the roles
+    val roleDelta: ListDelta<Role>? = null,    // change one role in the list
 ) {
-    class Chat(val msg: String, val name: String?, val type: ChatType?) {
+    class Chat(val msg: String, val name: String? = null, val type: ChatType? = null) {
         enum class ChatType { PUBLIC, ANON, TO_MOD, TEAM, ROLE }
     }
     class RoleAssignment(val role: String, val team: String, val requested_by: String)
-    class ListDelta<T>(index: Int, newVal: T)
+    class ListDelta<T>(val index: Int, val edit: T?)
 }
 
 suspend fun WebSocketSession.sendMessage(message: Message) = this.send(gson.toJson(message, Message::class.java))
@@ -128,9 +131,16 @@ fun Application.module(testing: Boolean = false) {
 
             room.users[this] = User()
 
-
+            // Broadcasts a message to all users in the room
             suspend fun broadcast(msg: Message) {
                 room.users.keys.map {
+                    it.sendMessage(msg)
+                }
+            }
+
+            // Like above, but skips the client who prompted the server
+            suspend fun broadcastSkipSender(msg: Message) {
+                room.users.keys.filter { it != this }.map {
                     it.sendMessage(msg)
                 }
             }
@@ -138,28 +148,27 @@ fun Application.module(testing: Boolean = false) {
             suspend fun broadcastUserList() = broadcast(Message(users = room.users.values.toList()))
             suspend fun broadcastRoles() = broadcast(Message(roles = room.roles.toList()))
 
-            // Inform everyone of the updated user list because this new user joined
-            broadcastUserList()
-
+            // Inform the new user of the existing roles and users
             sendMessage(Message(roles = room.roles.toList()))
+            sendMessage(Message(users = room.users.values.toList()))
+
+            // Inform everyone else of the update to the user list because this new user joined
+            broadcastSkipSender(Message(userDelta = Message.ListDelta(index=room.users.size - 1, room.users[this]!!)))
 
             try {
-                for (frame in incoming) {
+                while (true) {
+                    val frame = incoming.receive()
                     if (frame is Frame.Text) {
                         val message = gson.fromJson(frame.readText(), Message::class.java)
 
-                        val connections = room.users.keys
-
-                        if (message.roles != null) {
-                            room.roles = message.roles as MutableList<Role>
-                            connections.forEach {
-                                if (it != this)
-                                    it.sendMessage(Message(roles = room.roles))
-                            }
+                        if (message.roleDelta != null) {
+                            room.roles.edit(message.roleDelta.index, message.roleDelta.edit)
+                            broadcast(message)
                         }
                         else if (message.name != null) {
-                            room.users[this]!!.name = message.name
-                            broadcastUserList()
+                            val user = room.users[this]!!
+                            user.name = message.name
+                            broadcast(Message(userDelta = Message.ListDelta(room.users.keys.indexOf(this), user)))
                         }
                         else if (message.chat != null) {
                             if (message.chat.msg == "/assign") {
@@ -172,10 +181,10 @@ fun Application.module(testing: Boolean = false) {
                                             val user = users.next()
                                             user.value.role = role.name
                                             user.value.team = role.team
-                                            user.key.sendMessage((Message(assignment = Message.RoleAssignment(
+                                            user.key.sendMessage(Message(assignment = Message.RoleAssignment(
                                                                                             role = role.name,
                                                                                             team = role.team,
-                                                                                            requested_by = requestingUser))))
+                                                                                            requested_by = requestingUser)))
                                         } else { break@outer }
                             } else {
                                 val senderUser = room.users[this]!!
@@ -191,18 +200,19 @@ fun Application.module(testing: Boolean = false) {
                             }
                         }
                         else if (message.mod != null) {
-                            room.users[this]!!.mod = message.mod
-                            broadcastUserList()
+                            val user = room.users[this]!!
+                            user.mod = message.mod
+                            broadcast(Message(userDelta = Message.ListDelta(room.users.keys.indexOf(this), user)))
                         }
                     }
                 }
             } catch (e: Throwable) {
-                val connections = room.users.keys
-                connections.remove(this)
-                connections.forEach {
-                    it.send("Another user left.")
-                }
-                if (connections.size < 1)
+                if (e !is ClosedReceiveChannelException)
+                    e.printStackTrace()
+                val userIndex = room.users.keys.indexOf(this)
+                room.users.remove(this)
+                broadcast(Message(userDelta = Message.ListDelta(userIndex, null)))
+                if (room.users.isEmpty())
                     rooms.remove(roomCode)
             }
         }
