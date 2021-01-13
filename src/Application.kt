@@ -195,7 +195,11 @@ fun Application.module(testing: Boolean = false) {
                                         || message.chat.type == Message.Chat.ChatType.TEAM && recipientUser.team == senderUser.team
                                         || message.chat.type == Message.Chat.ChatType.ROLE && recipientUser.role == senderUser.role
                                     )
-                                        recipientUserSession.sendMessage(message)
+                                        recipientUserSession.sendMessage(Message(chat = Message.Chat(
+                                            name = room.users[this]!!.name,
+                                            msg = message.chat.msg,
+                                            type = message.chat.type
+                                        )))
                                 }
                             }
                         }
