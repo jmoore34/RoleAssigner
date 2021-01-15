@@ -198,7 +198,7 @@ fun Application.module(testing: Boolean = false) {
                                 room.users.entries.forEach { (recipientUserSession, recipientUser) ->
                                     if (message.chat.type == Message.Chat.ChatType.PUBLIC
                                         || message.chat.type == Message.Chat.ChatType.ANON
-                                        || message.chat.type == Message.Chat.ChatType.TO_MOD && recipientUser.mod
+                                        || message.chat.type == Message.Chat.ChatType.TO_MOD && (recipientUser.mod || recipientUserSession == this) //also send mod messages to self
                                         || message.chat.type == Message.Chat.ChatType.TEAM && recipientUser.team == senderUser.team
                                         || message.chat.type == Message.Chat.ChatType.ROLE && recipientUser.role == senderUser.role
                                     )
