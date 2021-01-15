@@ -47,7 +47,7 @@ export enum ChatType {
 export const chatTypes = [ChatType.PUBLIC, ChatType.ANON, ChatType.TO_MOD, ChatType.TEAM, ChatType.ROLE]
 
 export function getFriendlyName(chatType: ChatType): string {
-    return "Public"
+    return chatType.charAt(0).toUpperCase() + chatType.slice(1).toLowerCase().replace(/_/g, " ")
 }
 
 export interface Chat {
