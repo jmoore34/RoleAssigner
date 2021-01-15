@@ -179,12 +179,19 @@ fun Application.module(testing: Boolean = false) {
                                     for (i in 1..role.quantity)
                                         if (users.hasNext()) {
                                             val user = users.next()
-                                            user.value.role = role.name
-                                            user.value.team = role.team
-                                            user.key.sendMessage(Message(assignment = Message.RoleAssignment(
-                                                                                            role = role.name,
-                                                                                            team = role.team,
-                                                                                            requested_by = requestingUser)))
+                                            if (!user.value.mod) {
+                                                user.value.role = role.name
+                                                user.value.team = role.team
+                                                user.key.sendMessage(
+                                                    Message(
+                                                        assignment = Message.RoleAssignment(
+                                                            role = role.name,
+                                                            team = role.team,
+                                                            requested_by = requestingUser
+                                                        )
+                                                    )
+                                                )
+                                            }
                                         } else { break@outer }
                             } else {
                                 val senderUser = room.users[this]!!
@@ -206,6 +213,10 @@ fun Application.module(testing: Boolean = false) {
                         else if (message.mod != null) {
                             val user = room.users[this]!!
                             user.mod = message.mod
+                            if (message.mod) {
+                                user.role = "Moderator"
+                                user.team = "Moderators"
+                            }
                             broadcast(Message(userDelta = Message.ListDelta(room.users.keys.indexOf(this), user)))
                         }
                     }

@@ -11,7 +11,7 @@ export interface Message {
 
     // 3. Both ways - client sends to server and server then broadcasts to clients
     chat?: Chat                    // send a chat message
-    roleDelta: ListDelta<Role>     // change one role in the list
+    roleDelta?: ListDelta<Role>     // change one role in the list
 
 }
 
@@ -36,7 +36,7 @@ interface Role {
 
 //type ChatType = "PUBLIC" | "ANON" | "TO_MOD" | "TEAM" | "ROLE"
 
-enum ChatType {
+export enum ChatType {
     PUBLIC = "PUBLIC",
     ANON = "ANON",
     TO_MOD = "TO_MOD",
@@ -44,7 +44,13 @@ enum ChatType {
     ROLE = "ROLE"
 }
 
-interface Chat {
+export const chatTypes = [ChatType.PUBLIC, ChatType.ANON, ChatType.TO_MOD, ChatType.TEAM, ChatType.ROLE]
+
+export function getFriendlyName(chatType: ChatType): string {
+    return "Public"
+}
+
+export interface Chat {
     msg: String,
     name?: String
     type?: ChatType
