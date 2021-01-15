@@ -5,25 +5,37 @@ import {Chat, ChatType, chatTypes, getFriendlyName, Message} from "../Message";
 // @ts-ignore
 import {Cell, Grid} from "styled-css-grid";
 import styled from "styled-components";
-import {TextField, MenuItem, Select} from "@material-ui/core";
+import {MenuItem, Select, TextField} from "@material-ui/core";
 
 const ChatBox = styled.div`
-    border: 3px solid red;
-    height: 100%;
-    text-align: left;
+  border: 3px solid red;
+  height: 190px;
+  width: 100%;
+  text-align: left;
+  overflow-y: auto;
+  padding: 0.5rem;  
 `;
 
 const Box = styled.div`
-    border: 3px solid red;
-    height: 100%;
+  border: 3px solid red;
+  height: 100%;
+  width: 100%;
 `;
 
+const PageContainer = styled.div`
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
 
 const ChatMessage: React.FunctionComponent<{ chat: Chat }> = (props) => {
     if (!props.chat || !props.chat.type)
         return <></>
+    const userName = props.chat.type == ChatType.ANON ? "Anonymous" : props.chat.name
     return <>
-        [{getFriendlyName(props.chat.type)}] <b>{props.chat.name}:</b> {props.chat.msg}<br/>
+        [{getFriendlyName(props.chat.type)}] <b>{userName}:</b> {props.chat.msg}<br/>
     </>
 }
 
@@ -60,10 +72,10 @@ export const Room: React.FunctionComponent<{}> = (props) => {
 
     return <>
         <h1>Room: {roomCode}</h1>
-        {/*<Cell center middle>*/}
+        <PageContainer>
             <Grid
-                columns={"repeat(800px,2)"}
-                rows={"repeat(400px,2)"}
+                columns={"repeat(2, 800px)"}
+                rows={"repeat(2, 400px)"}
                 areas={[
                     "role   userlist",
                     "chat   chat"
@@ -92,20 +104,16 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                             </ChatBox>
                         </Cell>
                         <Cell area="role">
-                            <Box>
-                                Select
-                            </Box>
-                            {/*<Select value={chatType} onChange={e => {setChatType(e.target.value as ChatType)}}>*/}
-                            {/*    {chatTypes.map( type =>*/}
-                            {/*        <MenuItem value={type}>{getFriendlyName(type)}</MenuItem>*/}
-                            {/*    )}*/}
-                            {/*</Select>*/}
+                            <Select value={chatType} onChange={e => {
+                                setChatType(e.target.value as ChatType)
+                            }}>
+                                {chatTypes.map(type =>
+                                    <MenuItem value={type}>{getFriendlyName(type)}</MenuItem>
+                                )}
+                            </Select>
                         </Cell>
                         <Cell area="message">
-                            <Box>
-                                Input
-                            </Box>
-                            <TextField value={chatMessage} onChange={e => setChatMessage(e.target.value as string)}
+                            <TextField fullWidth value={chatMessage} onChange={e => setChatMessage(e.target.value as string)}
                                        onKeyPress={e => {
                                            if (e.key === 'Enter' && chatMessage.length > 0) {
                                                const message: Message = {
@@ -121,9 +129,8 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                             />
                         </Cell>
                     </Grid>
-                    Chat
                 </Cell>
             </Grid>
-        {/*</Cell>*/}
+        </PageContainer>
     </>
 }
