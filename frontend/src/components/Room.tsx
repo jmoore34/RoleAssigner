@@ -5,9 +5,11 @@ import {Chat, ChatType, chatTypes, getFriendlyName, Message, Role, User} from ".
 // @ts-ignore
 import {Cell, Grid} from "styled-css-grid";
 import styled from "styled-components";
-import {MenuItem, Select, TextField} from "@material-ui/core";
+import {Button, IconButton, MenuItem, Select, TextField} from "@material-ui/core";
 import {RoleView} from "./RoleView"
-
+import AddIcon from '@material-ui/icons/Add';
+import SendIcon from "@material-ui/icons/Send";
+import {Send} from "@material-ui/icons";
 
 const ChatBox = styled.div`
   border: 3px solid red;
@@ -15,7 +17,7 @@ const ChatBox = styled.div`
   width: 100%;
   text-align: left;
   overflow-y: auto;
-  padding: 0.5rem;  
+  padding: 0.5rem;
 `;
 
 const Box = styled.div`
@@ -32,6 +34,11 @@ const PageContainer = styled.div`
   align-items: center;
 `;
 
+const PaddedContainer = styled.div`
+  padding: 0.5rem;
+  overflow-y: auto;
+`;
+
 const ChatMessage: React.FunctionComponent<{ chat: Chat }> = (props) => {
     if (!props.chat || !props.chat.type)
         return <></>
@@ -43,14 +50,14 @@ const ChatMessage: React.FunctionComponent<{ chat: Chat }> = (props) => {
 
 // Returns an edited version of an array
 // Edits (or appends) a value at an index, or deletes an element if newVal is null
-// Warning: also edits the passed array in place (can be refactored if needed)
-function edit<T>(list: Array<T>, index: number, newVal: T | null): Array<T> {
+function edit<T>(array: Array<T>, index: number, newVal: T | null): Array<T> {
+    const newArray = [...array]
     if (!newVal) {
-        list.splice(index)
+        newArray.splice(index)
     } else {
-        list[index] = newVal
+        newArray[index] = newVal
     }
-    return list
+    return newArray
 }
 
 export const Room: React.FunctionComponent<{}> = (props) => {
@@ -70,12 +77,8 @@ export const Room: React.FunctionComponent<{}> = (props) => {
     const [users, setUsers] = useState<Array<User>>([])
 
     useEffect(() => {
-        console.log(`RAW: ${lastMessage}`)
-    }, [lastMessage])
-
-    useEffect(() => {
         if (lastJsonMessage) {
-            console.log(lastJsonMessage)
+            console.log(JSON.stringify(lastJsonMessage))
             const message = lastJsonMessage as Message
 
             if (message.chat) {
@@ -83,18 +86,16 @@ export const Room: React.FunctionComponent<{}> = (props) => {
             } else if (message.roles) {
                 setRoles(message.roles)
             } else if (message.roleDelta) {
-                if (message.roleDelta.edit)
-                    setRoles(edit(roles, message.roleDelta.index, message.roleDelta.edit))
-            } else if (message.users){
+                setRoles(edit(roles, message.roleDelta.index, message.roleDelta.edit))
+            } else if (message.users) {
                 setUsers(message.users)
             } else if (message.userDelta) {
-                if(message.userDelta.edit)
-                    setUsers(edit(users, message.userDelta.index, message.userDelta.edit))
+                setUsers(edit(users, message.userDelta.index, message.userDelta.edit))
             }
 
         }
     }, [lastJsonMessage])
-
+    console.log("roles -> " + JSON.stringify(roles))
     return <>
         <h1>Room: {roomCode}</h1>
         <PageContainer>
@@ -107,13 +108,52 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                 ]}>
                 <Cell area="role">
                     <Box>
-                        {roles.map((role, i) => <RoleView key={i} role={role} onChange={newRole => {
-                            if (newRole)
-                                roles[i] = newRole
-                            else //remove if null
-                                roles.splice(i)
-                            setRoles(roles)
-                        }}/>)}
+                        <PaddedContainer>
+                            {roles.map((role, i) => <RoleView key={i} role={role} onChange={newRole => {
+                                // if (newRole)
+                                //     roles[i] = newRole
+                                // else //remove if null
+                                //     roles.splice(i)
+                                // setRoles(roles)
+                                const msg: Message = {
+                                    roleDelta: {
+                                        index: i,
+                                        edit: newRole
+                                    }
+                                }
+                                sendJsonMessage(msg)
+                            }}/>)}
+
+                            <Button startIcon={<AddIcon/>} onClick={() => {
+                                const newRole: Role = {
+                                    name: "",
+                                    team: "",
+                                    quantity: 1
+                                }
+                                //setRoles([...roles, newRole]) // snappy UI by rendering change immediately
+                                // but also inform the server
+                                // (will cause another render when the server responds)
+                                const msg: Message = {
+                                    roleDelta: {
+                                        index: roles.length,
+                                        edit: newRole
+                                    }
+                                }
+                                sendJsonMessage(msg)
+                            }}>
+                                Add role
+                            </Button>
+                            <Button startIcon={<SendIcon/>} onClick={() => {
+                                const msg: Message = {
+                                    chat: {
+                                        msg: "/assign"
+                                    }
+                                }
+                                sendJsonMessage(msg)
+                            }}>
+                                Assign roles to users
+                            </Button>
+                        </PaddedContainer>
                     </Box>
                 </Cell>
                 <Cell area="userlist">
@@ -144,7 +184,8 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                             </Select>
                         </Cell>
                         <Cell area="message">
-                            <TextField fullWidth value={chatMessage} onChange={e => setChatMessage(e.target.value as string)}
+                            <TextField fullWidth value={chatMessage}
+                                       onChange={e => setChatMessage(e.target.value as string)}
                                        onKeyPress={e => {
                                            if (e.key === 'Enter' && chatMessage.length > 0) {
                                                const message: Message = {

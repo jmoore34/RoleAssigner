@@ -51,12 +51,12 @@ export function getFriendlyName(chatType: ChatType): string {
 }
 
 export interface Chat {
-    msg: String,
+    msg: String
     name?: String
     type?: ChatType
 }
 
 interface ListDelta<T> {
     index: number
-    edit: T
+    edit: T | null
 }
