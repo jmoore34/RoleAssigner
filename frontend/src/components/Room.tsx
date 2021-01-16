@@ -53,7 +53,7 @@ const ChatMessage: React.FunctionComponent<{ chat: Chat }> = (props) => {
 function edit<T>(array: Array<T>, index: number, newVal: T | null): Array<T> {
     const newArray = [...array]
     if (!newVal) {
-        newArray.splice(index)
+        newArray.splice(index, 1)
     } else {
         newArray[index] = newVal
     }
