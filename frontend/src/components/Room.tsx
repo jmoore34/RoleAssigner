@@ -13,18 +13,13 @@ import {Send} from "@material-ui/icons";
 
 const ChatBox = styled.div`
   border: 3px solid red;
-  height: 190px;
+  height: 100%;
   width: 100%;
   text-align: left;
   overflow-y: auto;
-  padding: 0.5rem;
+  margin: 0.5rem;
 `;
 
-const Box = styled.div`
-  border: 3px solid red;
-  height: 100%;
-  width: 100%;
-`;
 
 const PageContainer = styled.div`
   width: 100vw;
@@ -34,9 +29,11 @@ const PageContainer = styled.div`
   align-items: center;
 `;
 
-const PaddedContainer = styled.div`
-  padding: 0.5rem;
-  overflow-y: auto;
+const CustomCell = styled(Cell)<{ padded?: boolean, boxed?: boolean, scroll?: boolean }>`
+  ${props => props.padded && "padding: 0.5rem;"}
+  ${props => props.boxed && "border: 3px solid red;"}
+  ${props => props.scroll && "overflow-y: auto;"}
+  height: unset; // corrects a bug in library
 `;
 
 const ChatMessage: React.FunctionComponent<{ chat: Chat }> = (props) => {
@@ -100,81 +97,68 @@ export const Room: React.FunctionComponent<{}> = (props) => {
         <h1>Room: {roomCode}</h1>
         <PageContainer>
             <Grid
-                columns={"repeat(2, 800px)"}
-                rows={"repeat(2, 400px)"}
+                columns={"repeat(2, minmax(450px, 450px))"}
+                rows={"repeat(2, minmax(300px, 300px))"}
                 areas={[
-                    "role   userlist",
-                    "chat   chat"
+                    "role      userlist",
+                    "history   history",
+                    "message   message"
                 ]}>
-                <Cell area="role">
-                    <Box>
-                        <PaddedContainer>
-                            {roles.map((role, i) => <RoleView key={i} role={role} onChange={newRole => {
-                                // if (newRole)
-                                //     roles[i] = newRole
-                                // else //remove if null
-                                //     roles.splice(i)
-                                // setRoles(roles)
-                                const msg: Message = {
-                                    roleDelta: {
-                                        index: i,
-                                        edit: newRole
-                                    }
+                <CustomCell area="role" padded boxed scroll>
+                        {roles.map((role, i) => <RoleView key={i} role={role} onChange={newRole => {
+                            // if (newRole)
+                            //     roles[i] = newRole
+                            // else //remove if null
+                            //     roles.splice(i)
+                            // setRoles(roles)
+                            const msg: Message = {
+                                roleDelta: {
+                                    index: i,
+                                    edit: newRole
                                 }
-                                sendJsonMessage(msg)
-                            }}/>)}
+                            }
+                            sendJsonMessage(msg)
+                        }}/>)}
 
-                            <Button startIcon={<AddIcon/>} onClick={() => {
-                                const newRole: Role = {
-                                    name: "",
-                                    team: "",
-                                    quantity: 1
+                        <Button startIcon={<AddIcon/>} onClick={() => {
+                            const newRole: Role = {
+                                name: "",
+                                team: "",
+                                quantity: 1
+                            }
+                            //setRoles([...roles, newRole]) // snappy UI by rendering change immediately
+                            // but also inform the server
+                            // (will cause another render when the server responds)
+                            const msg: Message = {
+                                roleDelta: {
+                                    index: roles.length,
+                                    edit: newRole
                                 }
-                                //setRoles([...roles, newRole]) // snappy UI by rendering change immediately
-                                // but also inform the server
-                                // (will cause another render when the server responds)
-                                const msg: Message = {
-                                    roleDelta: {
-                                        index: roles.length,
-                                        edit: newRole
-                                    }
+                            }
+                            sendJsonMessage(msg)
+                        }}>
+                            Add role
+                        </Button>
+                        <Button startIcon={<SendIcon/>} onClick={() => {
+                            const msg: Message = {
+                                chat: {
+                                    msg: "/assign"
                                 }
-                                sendJsonMessage(msg)
-                            }}>
-                                Add role
-                            </Button>
-                            <Button startIcon={<SendIcon/>} onClick={() => {
-                                const msg: Message = {
-                                    chat: {
-                                        msg: "/assign"
-                                    }
-                                }
-                                sendJsonMessage(msg)
-                            }}>
-                                Assign roles to users
-                            </Button>
-                        </PaddedContainer>
-                    </Box>
-                </Cell>
-                <Cell area="userlist">
-                    <Box>
-                        Users
-                    </Box>
-                </Cell>
-                <Cell area="chat">
-                    <Grid
-                        columns={"8ch 1fr"}
-                        rows={"1fr auto"}
-                        areas={[
-                            "history   history",
-                            "role      message"
-                        ]}>
-                        <Cell area="history">
-                            <ChatBox>
-                                {chatMessages.map((chat) => <ChatMessage chat={chat}/>)}
-                            </ChatBox>
-                        </Cell>
-                        <Cell area="role">
+                            }
+                            sendJsonMessage(msg)
+                        }}>
+                            Assign roles to users
+                        </Button>
+                </CustomCell>
+                <CustomCell area="userlist" padded boxed scroll>
+                        User list
+                </CustomCell>
+                <CustomCell area="history" padded boxed scroll>
+                    {chatMessages.map((chat) => <ChatMessage chat={chat}/>)}
+                </CustomCell>
+                <Cell area="message">
+                    <Grid columns={"8ch 1fr"}>
+                        <Cell>
                             <Select value={chatType} onChange={e => {
                                 setChatType(e.target.value as ChatType)
                             }}>
@@ -183,7 +167,7 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                                 )}
                             </Select>
                         </Cell>
-                        <Cell area="message">
+                        <Cell>
                             <TextField fullWidth value={chatMessage}
                                        onChange={e => setChatMessage(e.target.value as string)}
                                        onKeyPress={e => {
