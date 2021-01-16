@@ -21,16 +21,16 @@ interface RoleAssignment {
     requested_by: String
 }
 
-interface User {
+export interface User {
     name: String
     mod: Boolean
     role: String
     team: String
 }
 
-interface Role {
+export interface Role {
     name: String
-    quantity: Number
+    quantity: number
     team: String
 }
 
@@ -57,6 +57,6 @@ export interface Chat {
 }
 
 interface ListDelta<T> {
-    index: Number
+    index: number
     edit: T
 }

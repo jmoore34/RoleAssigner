@@ -1,11 +1,13 @@
 import React, {useEffect, useState} from "react";
 import {useParams} from "react-router";
 import useWebSocket from "react-use-websocket";
-import {Chat, ChatType, chatTypes, getFriendlyName, Message} from "../Message";
+import {Chat, ChatType, chatTypes, getFriendlyName, Message, Role, User} from "../Message";
 // @ts-ignore
 import {Cell, Grid} from "styled-css-grid";
 import styled from "styled-components";
 import {MenuItem, Select, TextField} from "@material-ui/core";
+import {RoleView} from "./RoleView"
+
 
 const ChatBox = styled.div`
   border: 3px solid red;
@@ -39,6 +41,18 @@ const ChatMessage: React.FunctionComponent<{ chat: Chat }> = (props) => {
     </>
 }
 
+// Returns an edited version of an array
+// Edits (or appends) a value at an index, or deletes an element if newVal is null
+// Warning: also edits the passed array in place (can be refactored if needed)
+function edit<T>(list: Array<T>, index: number, newVal: T | null): Array<T> {
+    if (!newVal) {
+        list.splice(index)
+    } else {
+        list[index] = newVal
+    }
+    return list
+}
+
 export const Room: React.FunctionComponent<{}> = (props) => {
     const {roomCode} = useParams<{ roomCode: string }>()
     const [socketUrl, setSocketUrl] = useState('')
@@ -52,6 +66,8 @@ export const Room: React.FunctionComponent<{}> = (props) => {
     const [chatType, setChatType] = useState<ChatType>(ChatType.PUBLIC)
     const [chatMessage, setChatMessage] = useState("")
     const [chatMessages, setChatMessages] = useState<Array<Chat>>([])
+    const [roles, setRoles] = useState<Array<Role>>([])
+    const [users, setUsers] = useState<Array<User>>([])
 
     useEffect(() => {
         console.log(`RAW: ${lastMessage}`)
@@ -63,8 +79,17 @@ export const Room: React.FunctionComponent<{}> = (props) => {
             const message = lastJsonMessage as Message
 
             if (message.chat) {
-                console.log(`<${message.chat.type}> [${message.chat.name}] ${message.chat.msg}`)
                 setChatMessages([...chatMessages, message.chat])
+            } else if (message.roles) {
+                setRoles(message.roles)
+            } else if (message.roleDelta) {
+                if (message.roleDelta.edit)
+                    setRoles(edit(roles, message.roleDelta.index, message.roleDelta.edit))
+            } else if (message.users){
+                setUsers(message.users)
+            } else if (message.userDelta) {
+                if(message.userDelta.edit)
+                    setUsers(edit(users, message.userDelta.index, message.userDelta.edit))
             }
 
         }
@@ -82,7 +107,13 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                 ]}>
                 <Cell area="role">
                     <Box>
-                        Role
+                        {roles.map((role, i) => <RoleView key={i} role={role} onChange={newRole => {
+                            if (newRole)
+                                roles[i] = newRole
+                            else //remove if null
+                                roles.splice(i)
+                            setRoles(roles)
+                        }}/>)}
                     </Box>
                 </Cell>
                 <Cell area="userlist">
