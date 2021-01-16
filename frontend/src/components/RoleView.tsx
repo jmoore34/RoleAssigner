@@ -1,7 +1,7 @@
 import React, {FunctionComponent} from "react";
 import {Role} from "../Message";
 import {Cell, Grid} from "styled-css-grid";
-import {Button, IconButton, TextField} from "@material-ui/core";
+import {IconButton, TextField} from "@material-ui/core";
 import DeleteIcon from '@material-ui/icons/Delete';
 
 interface RoleViewProps {

@@ -1,5 +1,4 @@
 import React, { FunctionComponent, useState } from "react";
-import {useParams} from "react-router";
 
 export const Home: React.FunctionComponent<{}> = (props) => {
     return <>

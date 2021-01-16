@@ -9,17 +9,6 @@ import {Button, IconButton, MenuItem, Select, TextField} from "@material-ui/core
 import {RoleView} from "./RoleView"
 import AddIcon from '@material-ui/icons/Add';
 import SendIcon from "@material-ui/icons/Send";
-import {Send} from "@material-ui/icons";
-
-const ChatBox = styled.div`
-  border: 3px solid red;
-  height: 100%;
-  width: 100%;
-  text-align: left;
-  overflow-y: auto;
-  margin: 0.5rem;
-`;
-
 
 const PageContainer = styled.div`
   width: 100vw;
@@ -113,11 +102,6 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                 ]}>
                 <CustomCell area="role" padded boxed scroll>
                         {roles.map((role, i) => <RoleView key={i} role={role} onChange={newRole => {
-                            // if (newRole)
-                            //     roles[i] = newRole
-                            // else //remove if null
-                            //     roles.splice(i)
-                            // setRoles(roles)
                             const msg: Message = {
                                 roleDelta: {
                                     index: i,
@@ -133,9 +117,6 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                                 team: "",
                                 quantity: 1
                             }
-                            //setRoles([...roles, newRole]) // snappy UI by rendering change immediately
-                            // but also inform the server
-                            // (will cause another render when the server responds)
                             const msg: Message = {
                                 roleDelta: {
                                     index: roles.length,

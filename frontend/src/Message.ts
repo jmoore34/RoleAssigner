@@ -34,8 +34,6 @@ export interface Role {
     team: String
 }
 
-//type ChatType = "PUBLIC" | "ANON" | "TO_MOD" | "TEAM" | "ROLE"
-
 export enum ChatType {
     PUBLIC = "PUBLIC",
     ANON = "ANON",
