@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import {useParams} from "react-router";
 import useWebSocket from "react-use-websocket";
 import {Chat, ChatType, chatTypes, getFriendlyName, Message, Role, User} from "../Message";
@@ -37,12 +37,19 @@ const CustomCell = styled(Cell)<{ padded?: boolean, boxed?: boolean, scroll?: bo
 `;
 
 const ChatMessage: React.FunctionComponent<{ chat: Chat }> = (props) => {
+    const ref = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        const thisElement = ref.current
+        thisElement?.scrollIntoView()
+    }, [])
+
     if (!props.chat || !props.chat.type)
         return <></>
     const userName = props.chat.type == ChatType.ANON ? "Anonymous" : props.chat.name
-    return <>
+    return <div ref={ref}>
         [{getFriendlyName(props.chat.type)}] <b>{userName}:</b> {props.chat.msg}<br/>
-    </>
+    </div>
 }
 
 // Returns an edited version of an array
