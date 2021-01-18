@@ -79,6 +79,10 @@ export const Room: React.FunctionComponent<{}> = (props) => {
             } else if (message.roles) {
                 setRoles(message.roles)
             } else if (message.roleDelta) {
+                // If there are any scheduled requests to update the role that we are receiving a change for, cancel them
+                if (roles[message.roleDelta.index] && roles[message.roleDelta.index].updateRequestTimeout)
+                    clearTimeout(roles[message.roleDelta.index].updateRequestTimeout as number)
+                // Then overwrite our local copy with the version from the server
                 setRoles(edit(roles, message.roleDelta.index, message.roleDelta.edit))
             } else if (message.users) {
                 setUsers(message.users)
@@ -101,14 +105,39 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                     "message   message"
                 ]}>
                 <CustomCell area="role" padded boxed scroll>
-                        {roles.map((role, i) => <RoleView key={i} role={role} onChange={newRole => {
+                        {roles.map((role, i) => <RoleView key={i} role={role} onChange={editedRole => {
                             const msg: Message = {
                                 roleDelta: {
                                     index: i,
-                                    edit: newRole
+                                    edit: editedRole
                                 }
                             }
-                            sendJsonMessage(msg)
+                            // Role deletion is synchronous, i.e. we don't make any client side changes until the server gets back to us.
+                            // Name/team/quantity edits, however, are async: we make a local change immediately and queue a request to the server
+                            // That way the user can finish typing before a message to the server is sent (to reduce traffic by not sending messages for every new character)
+                            if (editedRole) {// non-deletion edit
+                                // Clear any queued changes to this role -- they're now out of date
+                                if (role.updateRequestTimeout)
+                                    clearTimeout(role.updateRequestTimeout)
+
+                                // Don't send any api calls until the user has stopped typing for a bit
+                                const timeout = window.setTimeout(() => {
+                                    sendJsonMessage(msg)
+                                    // Cleanup
+                                    role.updateRequestTimeout = null
+                                }, 1000)
+
+                                // Make the local-only change
+                                const newRoles = [...roles]
+                                newRoles[i] = editedRole
+                                newRoles[i].updateRequestTimeout = timeout
+                                setRoles(newRoles)
+                            } else {
+                                // Deletions are fully synchronous (not changed on the client first, must wait for authoritative server response)
+                                // So send it immediately
+                                sendJsonMessage(msg)
+                            }
+
                         }}/>)}
 
                         <Button startIcon={<AddIcon/>} onClick={() => {
@@ -123,7 +152,7 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                                     edit: newRole
                                 }
                             }
-                            sendJsonMessage(msg)
+                            sendJsonMessage(msg) // Role creation is done synchronously with the server, i.e. the server is authoratative and we don't make any client side changes until the server gets back to us
                         }}>
                             Add role
                         </Button>

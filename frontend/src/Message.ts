@@ -32,6 +32,11 @@ export interface Role {
     name: String
     quantity: number
     team: String
+
+    // Used by client only to debounce edits to name
+    // A timeout is (re)set on every client-side change to name, and an API request to the server is made
+    // when the timeout expires
+    updateRequestTimeout?: number | null // timeout id is number
 }
 
 export enum ChatType {
