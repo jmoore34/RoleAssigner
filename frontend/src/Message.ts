@@ -15,7 +15,7 @@ export interface Message {
 
 }
 
-interface RoleAssignment {
+export interface RoleAssignment {
     role: String
     team: String
     requested_by: String

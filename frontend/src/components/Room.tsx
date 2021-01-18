@@ -1,14 +1,25 @@
 import React, {useEffect, useRef, useState} from "react";
 import {useParams} from "react-router";
 import useWebSocket from "react-use-websocket";
-import {Chat, ChatType, chatTypes, getFriendlyName, Message, Role, User} from "../Message";
+import {Chat, ChatType, chatTypes, getFriendlyName, Message, Role, RoleAssignment, User} from "../Message";
 // @ts-ignore
 import {Cell, Grid} from "styled-css-grid";
 import styled from "styled-components";
-import {Button, IconButton, MenuItem, Select, TextField} from "@material-ui/core";
+import {
+    Avatar,
+    Button, Dialog, DialogContent, DialogContentText, DialogTitle,
+    IconButton,
+    List,
+    ListItem,
+    ListItemAvatar, ListItemText,
+    MenuItem,
+    Select,
+    TextField
+} from "@material-ui/core";
 import {RoleView} from "./RoleView"
 import AddIcon from '@material-ui/icons/Add';
 import SendIcon from "@material-ui/icons/Send";
+import {AssignmentDialog} from "./AssignmentDialog";
 
 const PageContainer = styled.div`
   width: 100vw;
@@ -53,6 +64,10 @@ function edit<T>(array: Array<T>, index: number, newVal: T | null): Array<T> {
     return newArray
 }
 
+// Used to debounce changes to name
+// So that name change API calls are only made when the user stops typing
+var nameChangeTimeout: number | null = null
+
 export const Room: React.FunctionComponent<{}> = (props) => {
     const {roomCode} = useParams<{ roomCode: string }>()
     const [socketUrl, setSocketUrl] = useState('')
@@ -68,6 +83,10 @@ export const Room: React.FunctionComponent<{}> = (props) => {
     const [chatMessages, setChatMessages] = useState<Array<Chat>>([])
     const [roles, setRoles] = useState<Array<Role>>([])
     const [users, setUsers] = useState<Array<User>>([])
+    const [isMod, setMod] = useState(false)
+    const [name, setName] = useState("Unnamed User")
+
+    const [assignedRole, setAssignedRole] = useState<RoleAssignment | null>(null)
 
     useEffect(() => {
         if (lastJsonMessage) {
@@ -88,6 +107,8 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                 setUsers(message.users)
             } else if (message.userDelta) {
                 setUsers(edit(users, message.userDelta.index, message.userDelta.edit))
+            } else if (message.assignment) {
+                setAssignedRole(message.assignment)
             }
 
         }
@@ -105,70 +126,99 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                     "message   message"
                 ]}>
                 <CustomCell area="role" padded boxed scroll>
-                        {roles.map((role, i) => <RoleView key={i} role={role} onChange={editedRole => {
-                            const msg: Message = {
-                                roleDelta: {
-                                    index: i,
-                                    edit: editedRole
-                                }
+                    {roles.map((role, i) => <RoleView key={i} role={role} onChange={editedRole => {
+                        const msg: Message = {
+                            roleDelta: {
+                                index: i,
+                                edit: editedRole
                             }
-                            // Role deletion is synchronous, i.e. we don't make any client side changes until the server gets back to us.
-                            // Name/team/quantity edits, however, are async: we make a local change immediately and queue a request to the server
-                            // That way the user can finish typing before a message to the server is sent (to reduce traffic by not sending messages for every new character)
-                            if (editedRole) {// non-deletion edit
-                                // Clear any queued changes to this role -- they're now out of date
-                                if (role.updateRequestTimeout)
-                                    clearTimeout(role.updateRequestTimeout)
+                        }
+                        // Role deletion is synchronous, i.e. we don't make any client side changes until the server gets back to us.
+                        // Name/team/quantity edits, however, are async: we make a local change immediately and queue a request to the server
+                        // That way the user can finish typing before a message to the server is sent (to reduce traffic by not sending messages for every new character)
+                        if (editedRole) {// non-deletion edit
+                            // Clear any queued changes to this role -- they're now out of date
+                            if (role.updateRequestTimeout)
+                                clearTimeout(role.updateRequestTimeout)
 
-                                // Don't send any api calls until the user has stopped typing for a bit
-                                const timeout = window.setTimeout(() => {
-                                    sendJsonMessage(msg)
-                                    // Cleanup
-                                    role.updateRequestTimeout = null
-                                }, 1000)
-
-                                // Make the local-only change
-                                const newRoles = [...roles]
-                                newRoles[i] = editedRole
-                                newRoles[i].updateRequestTimeout = timeout
-                                setRoles(newRoles)
-                            } else {
-                                // Deletions are fully synchronous (not changed on the client first, must wait for authoritative server response)
-                                // So send it immediately
+                            // Don't send any api calls until the user has stopped typing for a bit
+                            const timeout = window.setTimeout(() => {
                                 sendJsonMessage(msg)
-                            }
+                                // Cleanup
+                                role.updateRequestTimeout = null
+                            }, 1000)
 
-                        }}/>)}
-
-                        <Button startIcon={<AddIcon/>} onClick={() => {
-                            const newRole: Role = {
-                                name: "",
-                                team: "",
-                                quantity: 1
-                            }
-                            const msg: Message = {
-                                roleDelta: {
-                                    index: roles.length,
-                                    edit: newRole
-                                }
-                            }
-                            sendJsonMessage(msg) // Role creation is done synchronously with the server, i.e. the server is authoratative and we don't make any client side changes until the server gets back to us
-                        }}>
-                            Add role
-                        </Button>
-                        <Button startIcon={<SendIcon/>} onClick={() => {
-                            const msg: Message = {
-                                chat: {
-                                    msg: "/assign"
-                                }
-                            }
+                            // Make the local-only change
+                            const newRoles = [...roles]
+                            newRoles[i] = editedRole
+                            newRoles[i].updateRequestTimeout = timeout
+                            setRoles(newRoles)
+                        } else {
+                            // Deletions are fully synchronous (not changed on the client first, must wait for authoritative server response)
+                            // So send it immediately
                             sendJsonMessage(msg)
-                        }}>
-                            Assign roles to users
-                        </Button>
+                        }
+
+                    }}/>)}
+
+                    <Button startIcon={<AddIcon/>} onClick={() => {
+                        const newRole: Role = {
+                            name: "",
+                            team: "",
+                            quantity: 1
+                        }
+                        const msg: Message = {
+                            roleDelta: {
+                                index: roles.length,
+                                edit: newRole
+                            }
+                        }
+                        sendJsonMessage(msg) // Role creation is done synchronously with the server, i.e. the server is authoratative and we don't make any client side changes until the server gets back to us
+                    }}>
+                        Add role
+                    </Button>
+                    <Button startIcon={<SendIcon/>} onClick={() => {
+                        const msg: Message = {
+                            chat: {
+                                msg: "/assign"
+                            }
+                        }
+                        sendJsonMessage(msg)
+                    }}>
+                        Assign roles to users
+                    </Button>
                 </CustomCell>
                 <CustomCell area="userlist" padded boxed scroll>
-                        User list
+                    <TextField
+                        label="Your user name"
+                        value={name}
+                        onChange={e => {
+                            setName(e.target.value)
+                            const msg: Message = {
+                                name: e.target.value
+                            }
+                            if (nameChangeTimeout) {
+                                clearTimeout(nameChangeTimeout)
+                            }
+                            nameChangeTimeout = window.setTimeout(() => {
+                                sendJsonMessage(msg)
+                                // cleanup
+                                nameChangeTimeout = null
+                            }, 1000)
+                        }}/>
+                    <List>
+                        {users.map((user) =>
+                            <ListItem>
+                                <ListItemAvatar>
+                                    <Avatar>
+                                        A
+                                    </Avatar>
+                                </ListItemAvatar>
+                                <ListItemText primary={user.name}
+                                              secondary={isMod ? "" : `${user.role} + " " + ${user.team}`}/>
+                            </ListItem>
+                        )}
+                    </List>
                 </CustomCell>
                 <CustomCell area="history" padded boxed scroll>
                     {chatMessages.map((chat) => <ChatMessage chat={chat}/>)}
@@ -205,5 +255,9 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                 </Cell>
             </Grid>
         </PageContainer>
+
+
+        {/*Dialogs*/}
+        <AssignmentDialog assignment={assignedRole} onClose={() => setAssignedRole(null)}/>
     </>
 }
