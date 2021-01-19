@@ -193,6 +193,12 @@ fun Application.module(testing: Boolean = false) {
                                                 )
                                             }
                                         } else { break@outer }
+                                // Inform all the moderators of everyone's new roles
+                                val userList = room.users.values.toList()
+                                room.users.entries.forEach { (recipientUserSession, recipientUser) ->
+                                    if (recipientUser.mod)
+                                        recipientUserSession.sendMessage(Message(users = userList))
+                                }
                             } else {
                                 val senderUser = room.users[this]!!
                                 room.users.entries.forEach { (recipientUserSession, recipientUser) ->
@@ -218,6 +224,10 @@ fun Application.module(testing: Boolean = false) {
                                 user.team = "Moderators"
                             }
                             broadcast(Message(userDelta = Message.ListDelta(room.users.keys.indexOf(this), user)))
+
+                            // If the user is becoming a mod, they need to know everyone's roles
+                            if (message.mod)
+                                sendMessage(Message(users = room.users.values.toList()))
                         }
                     }
                 }
