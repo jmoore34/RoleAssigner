@@ -14,7 +14,7 @@ import {
     ListItemAvatar, ListItemText,
     MenuItem,
     Select,
-    TextField
+    TextField, useMediaQuery
 } from "@material-ui/core";
 import {RoleView} from "./RoleView"
 import AddIcon from '@material-ui/icons/Add';
@@ -23,10 +23,10 @@ import {AssignmentDialog} from "./AssignmentDialog";
 
 const PageContainer = styled.div`
   width: 100vw;
-  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-direction: column;
 `;
 
 const CustomCell = styled(Cell)<{ padded?: boolean, boxed?: boolean, scroll?: boolean }>`
@@ -88,6 +88,9 @@ export const Room: React.FunctionComponent<{}> = (props) => {
 
     const [assignedRole, setAssignedRole] = useState<RoleAssignment | null>(null)
 
+    const colWidth = 450
+    const mobile = useMediaQuery(`(max-width:${2.25 * colWidth}px)`)
+
     useEffect(() => {
         if (lastJsonMessage) {
             console.log(JSON.stringify(lastJsonMessage))
@@ -115,16 +118,22 @@ export const Room: React.FunctionComponent<{}> = (props) => {
     }, [lastJsonMessage])
     console.log("roles -> " + JSON.stringify(roles))
     return <>
-        <h1>Room: {roomCode}</h1>
         <PageContainer>
             <Grid
-                columns={"repeat(2, minmax(450px, 450px))"}
-                rows={"repeat(2, minmax(300px, 300px))"}
-                areas={[
+                columns={mobile ? '1fr' : `repeat(2, ${colWidth}px)`}
+                style={{margin: '1rem'}}
+                rows={mobile ? "auto auto 300px auto" : "repeat(2, 300px) auto"}
+                areas={mobile ? [
+                    "role",
+                    "userlist",
+                    "history",
+                    "message"
+                ] : [
                     "role      userlist",
                     "history   history",
                     "message   message"
-                ]}>
+                ]}
+            >
                 <CustomCell area="role" padded boxed scroll>
                     {roles.map((role, i) => <RoleView key={i} role={role} onChange={editedRole => {
                         const msg: Message = {
