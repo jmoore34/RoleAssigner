@@ -7,7 +7,7 @@ import {Cell, Grid} from "styled-css-grid";
 import styled from "styled-components";
 import {
     Avatar,
-    Button, Checkbox, Dialog, DialogContent, DialogContentText, DialogTitle,
+    Button, Checkbox, Dialog, DialogContent, DialogContentText, DialogTitle, FormControlLabel,
     IconButton,
     List,
     ListItem,
@@ -215,16 +215,19 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                                 nameChangeTimeout = null
                             }, 1000)
                         }}/>
-                    <Checkbox
-                        checked={isMod}
-                        onChange={e => {
-                            setMod(e.target.checked)
-                            const msg: Message = {
-                                mod: isMod
-                            }
-                        }}
-                        inputProps={{ 'aria-label': 'primary checkbox' }}
-                    />
+                    <FormControlLabel control={
+                        <Checkbox
+                            checked={isMod}
+                            onChange={e => {
+                                setMod(e.target.checked)
+                                const msg: Message = {
+                                    mod: e.target.checked
+                                }
+                                sendJsonMessage(msg)
+                            }}
+                            inputProps={{'aria-label': 'primary checkbox'}}
+                        />} label="Moderator opt-in"/>
+
 
                     <List>
                         {users.map((user) =>
@@ -235,7 +238,7 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                                     </Avatar>
                                 </ListItemAvatar>
                                 <ListItemText primary={user.name}
-                                              secondary={isMod ? `${user.role} ${user.team}` : ""}/>
+                                              secondary={user.mod ? "Moderator" : (isMod && `${user.role} ${user.team && `(${user.team})`}`)}/>
                             </ListItem>
                         )}
                     </List>
