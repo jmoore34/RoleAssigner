@@ -7,7 +7,7 @@ import {Cell, Grid} from "styled-css-grid";
 import styled from "styled-components";
 import {
     Avatar,
-    Button, Dialog, DialogContent, DialogContentText, DialogTitle,
+    Button, Checkbox, Dialog, DialogContent, DialogContentText, DialogTitle,
     IconButton,
     List,
     ListItem,
@@ -215,6 +215,17 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                                 nameChangeTimeout = null
                             }, 1000)
                         }}/>
+                    <Checkbox
+                        checked={isMod}
+                        onChange={e => {
+                            setMod(e.target.checked)
+                            const msg: Message = {
+                                mod: isMod
+                            }
+                        }}
+                        inputProps={{ 'aria-label': 'primary checkbox' }}
+                    />
+
                     <List>
                         {users.map((user) =>
                             <ListItem>
@@ -224,7 +235,7 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                                     </Avatar>
                                 </ListItemAvatar>
                                 <ListItemText primary={user.name}
-                                              secondary={isMod ? "" : `${user.role} + " " + ${user.team}`}/>
+                                              secondary={isMod ? `${user.role} ${user.team}` : ""}/>
                             </ListItem>
                         )}
                     </List>
