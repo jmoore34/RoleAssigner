@@ -1,20 +1,24 @@
 import React, {useEffect, useRef, useState} from "react";
 import {useParams} from "react-router";
-import useWebSocket from "react-use-websocket";
+import useWebSocket, {ReadyState} from "react-use-websocket";
 import {Chat, ChatType, chatTypes, getFriendlyName, Message, Role, RoleAssignment, User} from "../Message";
 // @ts-ignore
 import {Cell, Grid} from "styled-css-grid";
 import styled from "styled-components";
 import {
     Avatar,
-    Button, Checkbox, Dialog, DialogContent, DialogContentText, DialogTitle, FormControlLabel,
-    IconButton,
+    Button,
+    Checkbox,
+    Dialog, DialogContent, DialogContentText, DialogTitle,
+    FormControlLabel,
     List,
     ListItem,
-    ListItemAvatar, ListItemText,
+    ListItemAvatar,
+    ListItemText,
     MenuItem,
     Select,
-    TextField, useMediaQuery
+    TextField,
+    useMediaQuery
 } from "@material-ui/core";
 import {RoleView} from "./RoleView"
 import AddIcon from '@material-ui/icons/Add';
@@ -80,6 +84,13 @@ export const Room: React.FunctionComponent<{}> = (props) => {
         lastJsonMessage,
         readyState,
     } = useWebSocket(`ws://127.0.0.1/${roomCode}`, {})
+    const connectionStatus = {
+        [ReadyState.CONNECTING]: 'Connecting...',
+        [ReadyState.OPEN]: 'Open',
+        [ReadyState.CLOSING]: 'Closing...',
+        [ReadyState.CLOSED]: 'Connection closed.',
+        [ReadyState.UNINSTANTIATED]: 'Connection uninstantiated',
+    }[readyState];
     const [chatType, setChatType] = useState<ChatType>(ChatType.PUBLIC)
     const [chatMessage, setChatMessage] = useState("")
     const [chatMessages, setChatMessages] = useState<Array<Chat>>([])
@@ -298,6 +309,13 @@ export const Room: React.FunctionComponent<{}> = (props) => {
             }
             setPresetDialogVisible(false)
         }}/>
+
+        {/*Dialog to cover screen when not connected*/}
+        <Dialog disableBackdropClick
+                disableEscapeKeyDown
+                open={readyState !== ReadyState.OPEN}>
+            <DialogTitle>{connectionStatus}</DialogTitle>
+        </Dialog>
 
     </>
 }
