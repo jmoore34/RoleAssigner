@@ -16,12 +16,15 @@ import io.ktor.http.cio.websocket.*
 import java.time.*
 import io.ktor.gson.*
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
 class Room(
     var roles: MutableList<Role> = mutableListOf(),
-    val users: LinkedHashMap<WebSocketSession, User> = linkedMapOf()
+    val users: LinkedHashMap<WebSocketSession, User> = linkedMapOf(),
+    val mutex: Mutex
 )
 
 fun <T> MutableList<T>.edit(index: Int, newVal: T?) {
@@ -37,6 +40,7 @@ class Role(val name: String, val quantity: Int, val team: String)
 class User(var name: String = "Unnamed User", var mod: Boolean = false, var role: String = "No role", var team: String = "No team")
 
 val rooms = mutableMapOf<String, Room>()
+val globalMutex = Mutex()
 
 val gson = Gson()
 
@@ -125,11 +129,14 @@ fun Application.module(testing: Boolean = false) {
             if (roomCode == null || roomCode.isEmpty())
                 send("Error: Must specify a room code")
 
-            if (!rooms.containsKey(roomCode))
-                rooms[roomCode as String] = Room()
-            val room = rooms[roomCode]!!
+            var room: Room;
+            globalMutex.withLock {
+                if (!rooms.containsKey(roomCode))
+                    rooms[roomCode as String] = Room(mutex = Mutex())
+                room = rooms[roomCode]!!
 
-            room.users[this] = User()
+                room.users[this] = User()
+            }
 
             // Broadcasts a message to all users in the room
             suspend fun broadcast(msg: Message) {
@@ -145,100 +152,114 @@ fun Application.module(testing: Boolean = false) {
                 }
             }
 
-            suspend fun broadcastUserList() = broadcast(Message(users = room.users.values.toList()))
-            suspend fun broadcastRoles() = broadcast(Message(roles = room.roles.toList()))
+            room.mutex.withLock {
 
-            // Inform the new user of the existing roles and users
-            sendMessage(Message(roles = room.roles.toList()))
-            sendMessage(Message(users = room.users.values.toList()))
+                suspend fun broadcastUserList() = broadcast(Message(users = room.users.values.toList()))
+                suspend fun broadcastRoles() = broadcast(Message(roles = room.roles.toList()))
 
-            // Inform everyone else of the update to the user list because this new user joined
-            broadcastSkipSender(Message(userDelta = Message.ListDelta(index=room.users.size - 1, room.users[this]!!)))
+                // Inform the new user of the existing roles and users
+                sendMessage(Message(roles = room.roles.toList()))
+                sendMessage(Message(users = room.users.values.toList()))
+
+                // Inform everyone else of the update to the user list because this new user joined
+                broadcastSkipSender(Message(userDelta = Message.ListDelta(index=room.users.size - 1, room.users[this]!!)))
+            }
+
 
             try {
                 while (true) {
                     val frame = incoming.receive()
                     if (frame is Frame.Text) {
-                        val message = gson.fromJson(frame.readText(), Message::class.java)
+                        room.mutex.withLock {
+                            val message = gson.fromJson(frame.readText(), Message::class.java)
 
-                        if (message.roleDelta != null) {
-                            room.roles.edit(message.roleDelta.index, message.roleDelta.edit)
-                            broadcast(message)
-                        }
-                        else if (message.name != null) {
-                            val user = room.users[this]!!
-                            user.name = message.name
-                            broadcast(Message(userDelta = Message.ListDelta(room.users.keys.indexOf(this), user)))
-                        }
-                        else if (message.chat != null) {
-                            if (message.chat.msg == "/assign") {
-                                val users = room.users.entries.shuffled().iterator()
-                                val requestingUser = room.users[this]!!.name
-                                val roles = room.roles.sortedBy { it.quantity }
-                                outer@ for (role in roles)
-                                    for (i in 1..role.quantity)
-                                        if (users.hasNext()) {
-                                            val user = users.next()
-                                            if (!user.value.mod) {
-                                                user.value.role = role.name
-                                                user.value.team = role.team
-                                                user.key.sendMessage(
-                                                    Message(
-                                                        assignment = Message.RoleAssignment(
-                                                            role = role.name,
-                                                            team = role.team,
-                                                            requested_by = requestingUser
+                            if (message.roleDelta != null) {
+                                room.roles.edit(message.roleDelta.index, message.roleDelta.edit)
+                                broadcast(message)
+                            } else if (message.roles != null) {
+                                room.roles = message.roles as MutableList<Role>
+                                broadcast(Message(roles = message.roles)) // broadcast only relevant parts
+                            } else if (message.name != null) {
+                                val user = room.users[this]!!
+                                user.name = message.name
+                                broadcast(Message(userDelta = Message.ListDelta(room.users.keys.indexOf(this), user)))
+                            } else if (message.chat != null) {
+                                if (message.chat.msg == "/assign") {
+                                    val users = room.users.entries.shuffled().iterator()
+                                    val requestingUser = room.users[this]!!.name
+                                    val roles = room.roles.sortedBy { it.quantity }
+                                    outer@ for (role in roles)
+                                        for (i in 1..role.quantity)
+                                            if (users.hasNext()) {
+                                                val user = users.next()
+                                                if (!user.value.mod) {
+                                                    user.value.role = role.name
+                                                    user.value.team = role.team
+                                                    user.key.sendMessage(
+                                                        Message(
+                                                            assignment = Message.RoleAssignment(
+                                                                role = role.name,
+                                                                team = role.team,
+                                                                requested_by = requestingUser
+                                                            )
                                                         )
                                                     )
-                                                )
+                                                }
+                                            } else {
+                                                break@outer
                                             }
-                                        } else { break@outer }
-                                // Inform all the moderators of everyone's new roles
-                                val userList = room.users.values.toList()
-                                room.users.entries.forEach { (recipientUserSession, recipientUser) ->
-                                    if (recipientUser.mod)
-                                        recipientUserSession.sendMessage(Message(users = userList))
+                                    // Inform all the moderators of everyone's new roles
+                                    val userList = room.users.values.toList()
+                                    room.users.entries.forEach { (recipientUserSession, recipientUser) ->
+                                        if (recipientUser.mod)
+                                            recipientUserSession.sendMessage(Message(users = userList))
+                                    }
+                                } else {
+                                    val senderUser = room.users[this]!!
+                                    room.users.entries.forEach { (recipientUserSession, recipientUser) ->
+                                        if (message.chat.type == Message.Chat.ChatType.PUBLIC
+                                            || message.chat.type == Message.Chat.ChatType.ANON
+                                            || message.chat.type == Message.Chat.ChatType.TO_MOD && (recipientUser.mod || recipientUserSession == this) //also send mod messages to self
+                                            || message.chat.type == Message.Chat.ChatType.TEAM && recipientUser.team == senderUser.team
+                                            || message.chat.type == Message.Chat.ChatType.ROLE && recipientUser.role == senderUser.role
+                                        )
+                                            recipientUserSession.sendMessage(
+                                                Message(
+                                                    chat = Message.Chat(
+                                                        name = room.users[this]!!.name,
+                                                        msg = message.chat.msg,
+                                                        type = message.chat.type
+                                                    )
+                                                )
+                                            )
+                                    }
                                 }
-                            } else {
-                                val senderUser = room.users[this]!!
-                                room.users.entries.forEach { (recipientUserSession, recipientUser) ->
-                                    if (message.chat.type == Message.Chat.ChatType.PUBLIC
-                                        || message.chat.type == Message.Chat.ChatType.ANON
-                                        || message.chat.type == Message.Chat.ChatType.TO_MOD && (recipientUser.mod || recipientUserSession == this) //also send mod messages to self
-                                        || message.chat.type == Message.Chat.ChatType.TEAM && recipientUser.team == senderUser.team
-                                        || message.chat.type == Message.Chat.ChatType.ROLE && recipientUser.role == senderUser.role
-                                    )
-                                        recipientUserSession.sendMessage(Message(chat = Message.Chat(
-                                            name = room.users[this]!!.name,
-                                            msg = message.chat.msg,
-                                            type = message.chat.type
-                                        )))
+                            } else if (message.mod != null) {
+                                val user = room.users[this]!!
+                                user.mod = message.mod
+                                if (message.mod) {
+                                    user.role = "Moderator"
+                                    user.team = "Moderators"
                                 }
-                            }
-                        }
-                        else if (message.mod != null) {
-                            val user = room.users[this]!!
-                            user.mod = message.mod
-                            if (message.mod) {
-                                user.role = "Moderator"
-                                user.team = "Moderators"
-                            }
-                            broadcast(Message(userDelta = Message.ListDelta(room.users.keys.indexOf(this), user)))
+                                broadcast(Message(userDelta = Message.ListDelta(room.users.keys.indexOf(this), user)))
 
-                            // If the user is becoming a mod, they need to know everyone's roles
-                            if (message.mod)
-                                sendMessage(Message(users = room.users.values.toList()))
+                                // If the user is becoming a mod, they need to know everyone's roles
+                                if (message.mod)
+                                    sendMessage(Message(users = room.users.values.toList()))
+                            }
                         }
                     }
                 }
             } catch (e: Throwable) {
                 if (e !is ClosedReceiveChannelException)
                     e.printStackTrace()
-                val userIndex = room.users.keys.indexOf(this)
-                room.users.remove(this)
-                broadcast(Message(userDelta = Message.ListDelta(userIndex, null)))
-                if (room.users.isEmpty())
-                    rooms.remove(roomCode)
+                globalMutex.withLock {
+                    val userIndex = room.users.keys.indexOf(this)
+                    room.users.remove(this)
+                    broadcast(Message(userDelta = Message.ListDelta(userIndex, null)))
+                    if (room.users.isEmpty())
+                        rooms.remove(roomCode)
+                }
             }
         }
 
