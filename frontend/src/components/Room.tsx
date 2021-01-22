@@ -20,6 +20,8 @@ import {RoleView} from "./RoleView"
 import AddIcon from '@material-ui/icons/Add';
 import SendIcon from "@material-ui/icons/Send";
 import {AssignmentDialog} from "./AssignmentDialog";
+import {PresetDialog} from "./PresetDialog";
+import {Build} from "@material-ui/icons";
 
 const PageContainer = styled.div`
   width: 100vw;
@@ -87,6 +89,8 @@ export const Room: React.FunctionComponent<{}> = (props) => {
     const [name, setName] = useState("Unnamed User")
 
     const [assignedRole, setAssignedRole] = useState<RoleAssignment | null>(null)
+
+    const [presetDialogVisible, setPresetDialogVisible] = useState(false)
 
     const colWidth = 450
     const mobile = useMediaQuery(`(max-width:${2.25 * colWidth}px)`)
@@ -196,6 +200,9 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                     }}>
                         Assign roles to users
                     </Button>
+                    <Button startIcon={<Build/>} onClick={() => setPresetDialogVisible(true)}>
+                        Use preset
+                    </Button>
                 </CustomCell>
                 <CustomCell area="userlist" padded boxed scroll>
                     <TextField
@@ -282,5 +289,15 @@ export const Room: React.FunctionComponent<{}> = (props) => {
 
         {/*Dialogs*/}
         <AssignmentDialog assignment={assignedRole} onClose={() => setAssignedRole(null)}/>
+        <PresetDialog visible={presetDialogVisible} onSelect={preset => {
+            if (preset) {
+                const msg: Message = {
+                    roles: preset.roles
+                }
+                sendJsonMessage(msg)
+            }
+            setPresetDialogVisible(false)
+        }}/>
+
     </>
 }
