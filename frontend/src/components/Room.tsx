@@ -39,6 +39,7 @@ const CustomCell = styled(Cell)<{ padded?: boolean, boxed?: boolean, scroll?: bo
   ${props => props.padded && "padding: 0.5rem;"}
   ${props => props.boxed && "border: 3px solid red;"}
   ${props => props.scroll && "overflow-y: auto;"}
+  overflow-wrap: break-word; // prevent expanding horizontally past the bounds of the container
   height: unset; // corrects a bug in library
 `;
 
