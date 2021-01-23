@@ -6,7 +6,7 @@ import {Chat, ChatType, chatTypes, getFriendlyName, Message, Role, RoleAssignmen
 import {Cell, Grid} from "styled-css-grid";
 import styled from "styled-components";
 import {
-    Avatar,
+    Avatar, Badge,
     Button,
     Checkbox,
     Dialog, DialogContent, DialogContentText, DialogTitle,
@@ -25,7 +25,7 @@ import AddIcon from '@material-ui/icons/Add';
 import SendIcon from "@material-ui/icons/Send";
 import {AssignmentDialog} from "./AssignmentDialog";
 import {PresetDialog} from "./PresetDialog";
-import {Build} from "@material-ui/icons";
+import {Build, Security, SecurityTwoTone} from "@material-ui/icons";
 
 const PageContainer = styled.div`
   width: 100vw;
@@ -256,9 +256,7 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                         {users.map((user) =>
                             <ListItem>
                                 <ListItemAvatar>
-                                    <Avatar>
-                                        A
-                                    </Avatar>
+                                    <Avatar />
                                 </ListItemAvatar>
                                 <ListItemText primary={user.name}
                                               secondary={user.mod ? "Moderator" : (isMod && `${user.role} ${user.team && `(${user.team})`}`)}/>
