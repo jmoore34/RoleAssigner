@@ -29,6 +29,7 @@ import {Build} from "@material-ui/icons";
 
 const PageContainer = styled.div`
   width: 100vw;
+  min-height: 100vh; // may need to be >100vh on mobile
   display: flex;
   justify-content: center;
   align-items: center;
