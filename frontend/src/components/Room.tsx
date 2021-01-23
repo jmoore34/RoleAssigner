@@ -76,17 +76,20 @@ var nameChangeTimeout: number | null = null
 
 export const Room: React.FunctionComponent<{}> = (props) => {
     const {roomCode} = useParams<{ roomCode: string }>()
-    const [socketUrl, setSocketUrl] = useState('')
     const {
         sendMessage,
         sendJsonMessage,
         lastMessage,
         lastJsonMessage,
         readyState,
-    } = useWebSocket(`ws://127.0.0.1/${roomCode}`, {})
+    } = useWebSocket(`ws://127.0.0.1/${roomCode}`, {
+        retryOnError: true,
+        reconnectInterval: 4000,
+        reconnectAttempts: 9
+    })
     const connectionStatus = {
-        [ReadyState.CONNECTING]: 'Connecting...',
-        [ReadyState.OPEN]: 'Open',
+        [ReadyState.CONNECTING]: 'Attempting to connect to server...',
+        [ReadyState.OPEN]: 'Connection established.',
         [ReadyState.CLOSING]: 'Closing...',
         [ReadyState.CLOSED]: 'Connection closed.',
         [ReadyState.UNINSTANTIATED]: 'Connection uninstantiated',
