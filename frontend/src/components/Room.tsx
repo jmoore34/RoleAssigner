@@ -6,10 +6,11 @@ import {Chat, ChatType, chatTypes, getFriendlyName, Message, Role, RoleAssignmen
 import {Cell, Grid} from "styled-css-grid";
 import styled from "styled-components";
 import {
-    Avatar, Badge,
+    Avatar,
     Button,
     Checkbox,
-    Dialog, DialogContent, DialogContentText, DialogTitle,
+    Dialog,
+    DialogTitle,
     FormControlLabel,
     List,
     ListItem,
@@ -23,9 +24,9 @@ import {
 import {RoleView} from "./RoleView"
 import AddIcon from '@material-ui/icons/Add';
 import SendIcon from "@material-ui/icons/Send";
-import {AssignmentDialog} from "./AssignmentDialog";
+import {AssignmentDialog, getRoleAssignmentMessage} from "./AssignmentDialog";
 import {PresetDialog} from "./PresetDialog";
-import {Build, Security, SecurityTwoTone} from "@material-ui/icons";
+import {Build} from "@material-ui/icons";
 
 export const PageContainer = styled.div`
   width: 100vw;
@@ -44,6 +45,15 @@ const CustomCell = styled(Cell)<{ padded?: boolean, boxed?: boolean, scroll?: bo
   height: unset; // corrects a bug in library
 `;
 
+const SystemChatMessage = styled.div`
+  color: red;
+  font-style: italic;
+`;
+
+interface SystemMessage {
+    msg: string;
+}
+
 const ChatMessage: React.FunctionComponent<{ chat: Chat }> = (props) => {
     const ref = useRef<HTMLDivElement>(null)
 
@@ -51,6 +61,12 @@ const ChatMessage: React.FunctionComponent<{ chat: Chat }> = (props) => {
         const thisElement = ref.current
         thisElement?.scrollIntoView()
     }, [])
+
+    if (props.chat.type == ChatType.SYSTEM) {
+        return <SystemChatMessage>
+            {props.chat.msg}
+        </SystemChatMessage>
+    }
 
     if (!props.chat || !props.chat.type)
         return <></>
@@ -132,6 +148,11 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                 setUsers(edit(users, message.userDelta.index, message.userDelta.edit))
             } else if (message.assignment) {
                 setAssignedRole(message.assignment)
+                const systemChatMessage: Chat = {
+                    msg: getRoleAssignmentMessage(message.assignment),
+                    type: ChatType.SYSTEM
+                }
+                setChatMessages([...chatMessages, systemChatMessage])
             }
 
         }
@@ -256,7 +277,7 @@ export const Room: React.FunctionComponent<{}> = (props) => {
                         {users.map((user) =>
                             <ListItem>
                                 <ListItemAvatar>
-                                    <Avatar />
+                                    <Avatar/>
                                 </ListItemAvatar>
                                 <ListItemText primary={user.name}
                                               secondary={user.mod ? "Moderator" : (isMod && `${user.role} ${user.team && `(${user.team})`}`)}/>

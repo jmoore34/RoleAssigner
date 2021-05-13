@@ -44,7 +44,8 @@ export enum ChatType {
     ANON = "ANON",
     TO_MOD = "TO_MOD",
     TEAM = "TEAM",
-    ROLE = "ROLE"
+    ROLE = "ROLE",
+    SYSTEM = "SYSTEM" // currently only used on the frontend e.g. to put role assignments in that chat
 }
 
 export const chatTypes = [ChatType.PUBLIC, ChatType.ANON, ChatType.TO_MOD, ChatType.TEAM, ChatType.ROLE]
