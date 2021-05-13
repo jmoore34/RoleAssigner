@@ -185,29 +185,56 @@ fun Application.module(testing: Boolean = false) {
                                 broadcast(Message(userDelta = Message.ListDelta(room.users.keys.indexOf(this), user)))
                             } else if (message.chat != null) {
                                 if (message.chat.msg == "/assign") {
-                                    val users = room.users.entries.shuffled().iterator()
+                                    val (mods, nonModUsers) = room.users.entries.partition { it.value.mod }
                                     val requestingUser = room.users[this]!!.name
+                                    for (mod in mods) {
+                                        mod.value.role = "Moderator"
+                                        mod.value.team = "Moderators"
+                                        mod.key.sendMessage(
+                                            Message(
+                                                assignment = Message.RoleAssignment(
+                                                    role = mod.value.role,
+                                                    team = mod.value.team,
+                                                    requested_by = requestingUser
+                                                )
+                                            )
+                                        )
+                                    }
+                                    val nonModUserIterator = nonModUsers.shuffled().iterator()
                                     val roles = room.roles.sortedBy { it.quantity }
                                     outer@ for (role in roles)
                                         for (i in 1..role.quantity)
-                                            if (users.hasNext()) {
-                                                val user = users.next()
-                                                if (!user.value.mod) {
-                                                    user.value.role = role.name
-                                                    user.value.team = role.team
-                                                    user.key.sendMessage(
-                                                        Message(
-                                                            assignment = Message.RoleAssignment(
-                                                                role = role.name,
-                                                                team = role.team,
-                                                                requested_by = requestingUser
-                                                            )
+                                            if (nonModUserIterator.hasNext()) {
+                                                val user = nonModUserIterator.next()
+                                                user.value.role = role.name
+                                                user.value.team = role.team
+                                                user.key.sendMessage(
+                                                    Message(
+                                                        assignment = Message.RoleAssignment(
+                                                            role = role.name,
+                                                            team = role.team,
+                                                            requested_by = requestingUser
                                                         )
                                                     )
-                                                }
+                                                )
                                             } else {
                                                 break@outer
                                             }
+                                    // If there are no more roles but still users left in the iterator, make them roleless (in case they already had a role)
+                                    while (nonModUserIterator.hasNext()) {
+                                        val user = nonModUserIterator.next()
+                                        user.value.role = "No role"
+                                        user.value.team = "No team"
+                                        user.key.sendMessage(
+                                            Message(
+                                                assignment = Message.RoleAssignment(
+                                                    role = user.value.role,
+                                                    team = user.value.team,
+                                                    requested_by = requestingUser
+                                                )
+                                            )
+                                        )
+                                    }
                                     // Inform all the moderators of everyone's new roles
                                     val userList = room.users.values.toList()
                                     room.users.entries.forEach { (recipientUserSession, recipientUser) ->
@@ -222,6 +249,7 @@ fun Application.module(testing: Boolean = false) {
                                             || message.chat.type == Message.Chat.ChatType.TO_MOD && (recipientUser.mod || recipientUserSession == this) //also send mod messages to self
                                             || message.chat.type == Message.Chat.ChatType.TEAM && recipientUser.team == senderUser.team
                                             || message.chat.type == Message.Chat.ChatType.ROLE && recipientUser.role == senderUser.role
+                                            || recipientUser.mod
                                         )
                                             recipientUserSession.sendMessage(
                                                 Message(
