@@ -27,7 +27,7 @@ import {AssignmentDialog} from "./AssignmentDialog";
 import {PresetDialog} from "./PresetDialog";
 import {Build, Security, SecurityTwoTone} from "@material-ui/icons";
 
-const PageContainer = styled.div`
+export const PageContainer = styled.div`
   width: 100vw;
   min-height: 100vh; // may need to be >100vh on mobile
   display: flex;
