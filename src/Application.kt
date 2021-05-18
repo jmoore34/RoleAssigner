@@ -141,7 +141,7 @@ fun Application.module(testing: Boolean = false) {
             // Broadcasts a message to all users in the room
             suspend fun broadcast(msg: Message) {
                 room.users.keys.map {
-                    sendMessage(msg)
+                    it.sendMessage(msg)
                 }
             }
 
