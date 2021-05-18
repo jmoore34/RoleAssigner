@@ -1,0 +1,6 @@
+{
+  "name": "RoleAssigner",
+  "description": "A ktor application for interactively and anonymously assigning roles among users",
+  "image": "heroku/java",
+  "addons": []
+}
