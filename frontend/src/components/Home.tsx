@@ -51,7 +51,7 @@ export const Home: React.FunctionComponent<{}> = (props) => {
                 <p>An online chat room where you anonymously divvy up roles. To create a new room or join an existing one,
                     enter a room name and click the button.</p>
                 <InputContainter>
-                    <TextField id="outlined-basic" label="Outlined" variant="outlined" size="medium" placeholder="Room name"
+                    <TextField id="outlined-basic" label="Room name" variant="outlined" size="medium" placeholder="Room name"
                                fullWidth
                                onChange={e => setRoomName(e.target.value)}
                                onKeyPress={e => {if (e.key === 'Enter') {

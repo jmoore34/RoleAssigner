@@ -72,7 +72,7 @@ const ChatMessage: React.FunctionComponent<{ chat: Chat }> = (props) => {
         return <></>
     const userName = props.chat.type == ChatType.ANON ? "Anonymous" : props.chat.name
     return <div ref={ref}>
-        [{getFriendlyName(props.chat.type)}] <b>{userName}:</b> {props.chat.msg}<br/>
+        [{getFriendlyName(props.chat.type)}] {props.chat.team && `(${props.chat.team}) `}{props.chat.role && `(${props.chat.role}) `}<b>{userName}:</b> {props.chat.msg}<br/>
     </div>
 }
 
@@ -91,6 +91,11 @@ function edit<T>(array: Array<T>, index: number, newVal: T | null): Array<T> {
 // Used to debounce changes to name
 // So that name change API calls are only made when the user stops typing
 var nameChangeTimeout: number | null = null
+
+const welcomeMessage: Chat = {
+    type: ChatType.SYSTEM,
+    msg: "Welcome to the role assignment room! To invite others, share the URL."
+}
 
 export const Room: React.FunctionComponent<{}> = (props) => {
     const {roomCode} = useParams<{ roomCode: string }>()
@@ -114,7 +119,7 @@ export const Room: React.FunctionComponent<{}> = (props) => {
     }[readyState];
     const [chatType, setChatType] = useState<ChatType>(ChatType.PUBLIC)
     const [chatMessage, setChatMessage] = useState("")
-    const [chatMessages, setChatMessages] = useState<Array<Chat>>([])
+    const [chatMessages, setChatMessages] = useState<Array<Chat>>([welcomeMessage])
     const [roles, setRoles] = useState<Array<Role>>([])
     const [users, setUsers] = useState<Array<User>>([])
     const [isMod, setMod] = useState(false)

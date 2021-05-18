@@ -58,6 +58,8 @@ export interface Chat {
     msg: String
     name?: String
     type?: ChatType
+    team?: String
+    role?: String
 }
 
 interface ListDelta<T> {

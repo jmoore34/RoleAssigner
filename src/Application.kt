@@ -59,7 +59,7 @@ class Message(
     val chat: Chat? = null,                    // send a chat message
     val roleDelta: ListDelta<Role>? = null,    // change one role in the list
 ) {
-    class Chat(val msg: String, val name: String? = null, val type: ChatType? = null) {
+    class Chat(val msg: String, val name: String? = null, val type: ChatType? = null, val team: String? = null, val role: String? = null) {
         enum class ChatType { PUBLIC, ANON, TO_MOD, TEAM, ROLE }
     }
     class RoleAssignment(val role: String, val team: String, val requested_by: String)
@@ -141,16 +141,17 @@ fun Application.module(testing: Boolean = false) {
             // Broadcasts a message to all users in the room
             suspend fun broadcast(msg: Message) {
                 room.users.keys.map {
-                    it.sendMessage(msg)
+                    sendMessage(msg)
                 }
             }
 
             // Like above, but skips the client who prompted the server
             suspend fun broadcastSkipSender(msg: Message) {
-                room.users.keys.filter { it != this }.map {
+                room.users.keys.filter { it != this}.map {
                     it.sendMessage(msg)
                 }
             }
+
 
             room.mutex.withLock {
 
@@ -256,7 +257,9 @@ fun Application.module(testing: Boolean = false) {
                                                     chat = Message.Chat(
                                                         name = room.users[this]!!.name,
                                                         msg = message.chat.msg,
-                                                        type = message.chat.type
+                                                        type = message.chat.type,
+                                                        team = if (message.chat.type == Message.Chat.ChatType.TEAM) senderUser.team else null,
+                                                        role = if (message.chat.type == Message.Chat.ChatType.ROLE) senderUser.role else null
                                                     )
                                                 )
                                             )
