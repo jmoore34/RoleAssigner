@@ -1,0 +1,1 @@
+web: ./build/install/roleassigner/bin/roleassigner
