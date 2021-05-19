@@ -1,8 +1,8 @@
 {
   "files": {
     "main.css": "/RoleAssigner/static/css/main.8c8b27cf.chunk.css",
-    "main.js": "/RoleAssigner/static/js/main.6f6de7f5.chunk.js",
-    "main.js.map": "/RoleAssigner/static/js/main.6f6de7f5.chunk.js.map",
+    "main.js": "/RoleAssigner/static/js/main.1bdd5996.chunk.js",
+    "main.js.map": "/RoleAssigner/static/js/main.1bdd5996.chunk.js.map",
     "runtime-main.js": "/RoleAssigner/static/js/runtime-main.eebaf38d.js",
     "runtime-main.js.map": "/RoleAssigner/static/js/runtime-main.eebaf38d.js.map",
     "static/js/2.2b3ae5eb.chunk.js": "/RoleAssigner/static/js/2.2b3ae5eb.chunk.js",
@@ -17,6 +17,6 @@
     "static/js/runtime-main.eebaf38d.js",
     "static/js/2.2b3ae5eb.chunk.js",
     "static/css/main.8c8b27cf.chunk.css",
-    "static/js/main.6f6de7f5.chunk.js"
+    "static/js/main.1bdd5996.chunk.js"
   ]
 }
