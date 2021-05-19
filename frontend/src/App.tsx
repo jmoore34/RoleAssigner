@@ -16,10 +16,10 @@ function App() {
   return (
     <Router>
       <Switch>
-        <Route path="/:roomCode">
+        <Route path="/RoleAssigner/:roomCode">
           <Room />
         </Route>
-        <Route path="/">
+        <Route path="/RoleAssigner">
           <Home />
         </Route>
       </Switch>
