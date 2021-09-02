@@ -3,10 +3,9 @@ import logo from './logo.svg';
 import './App.css';
 
 import {
-  BrowserRouter as Router,
   Switch,
   Route,
-  Link
+  HashRouter
 } from "react-router-dom";
 import {Home} from "./components/Home";
 import {Room} from "./components/Room";
@@ -14,7 +13,7 @@ import {Room} from "./components/Room";
 
 function App() {
   return (
-    <Router>
+    <HashRouter hashType="noslash" >
       <Switch>
         <Route path="/:roomCode">
           <Room />
@@ -23,7 +22,7 @@ function App() {
           <Home />
         </Route>
       </Switch>
-    </Router>
+    </HashRouter>
   );
 }
 
