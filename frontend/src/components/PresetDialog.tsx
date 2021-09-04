@@ -36,7 +36,7 @@ const presets: Array<Preset> = [
             {name: "Mafia", quantity: 3, team: "Evil"},
             {name: "Detective", quantity: 1, team: "Good"},
             {name: "Medic", quantity: 1, team: "Good"},
-            {name: "Liberal", quantity: 10, team: "Good"}
+            {name: "Townsperson", quantity: 10, team: "Good"}
         ]
     },
     {
