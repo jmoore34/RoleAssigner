@@ -6,3 +6,5 @@
 *.iml
 *.ipr
 *.iws
+frontend/debug.log
+frontend/.eslintcache
