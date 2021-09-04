@@ -9,6 +9,7 @@ import {
     Avatar,
     Button,
     Checkbox,
+    LinearProgress,
     Dialog,
     DialogTitle,
     FormControlLabel,
@@ -111,7 +112,7 @@ export const Room: React.FunctionComponent<{}> = (props) => {
         reconnectAttempts: 9
     })
     const connectionStatus = {
-        [ReadyState.CONNECTING]: 'Attempting to connect to server...',
+        [ReadyState.CONNECTING]: 'Connecting to server...',
         [ReadyState.OPEN]: 'Connection established.',
         [ReadyState.CLOSING]: 'Closing...',
         [ReadyState.CLOSED]: 'Connection closed.',
@@ -343,7 +344,9 @@ export const Room: React.FunctionComponent<{}> = (props) => {
         <Dialog disableBackdropClick
                 disableEscapeKeyDown
                 open={readyState !== ReadyState.OPEN}>
+
             <DialogTitle>{connectionStatus}</DialogTitle>
+            {(readyState === ReadyState.CONNECTING || readyState === ReadyState.CLOSING) && <LinearProgress />}
         </Dialog>
 
     </>
