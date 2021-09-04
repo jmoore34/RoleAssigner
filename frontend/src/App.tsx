@@ -15,10 +15,10 @@ function App() {
   return (
     <HashRouter hashType="noslash" >
       <Switch>
-        <Route path="/RoleAssigner/:roomCode">
+        <Route path="/:roomCode">
           <Room />
         </Route>
-        <Route path="/RoleAssigner">
+        <Route path="/">
           <Home />
         </Route>
       </Switch>

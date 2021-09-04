@@ -40,7 +40,7 @@ export const Home: React.FunctionComponent<{}> = (props) => {
     const history = useHistory()
     const goToRoom = () => {
         if (roomName.length > 0) {
-            history.push(`/RoleAssigner/${roomName}`)
+            history.push(`${roomName}`)
         }
     }
 

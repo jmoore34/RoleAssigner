@@ -105,7 +105,7 @@ export const Room: React.FunctionComponent<{}> = (props) => {
         lastMessage,
         lastJsonMessage,
         readyState,
-    } = useWebSocket(`wss://roleassigner.herokuapp.com/${roomCode}`, {
+    } = useWebSocket(`wss://roleassigner.herokuapp.com/${roomCode.toLowerCase()}`, {
         retryOnError: true,
         reconnectInterval: 4000,
         reconnectAttempts: 9
