@@ -17,7 +17,7 @@ const presets: Array<Preset> = [
     {
         name: "Secret Hitler", roles: [
             {name: "Hitler", quantity: 1, team: "Evil"},
-            {name: "Facist", quantity: 2, team: "Evil"},
+            {name: "Fascist", quantity: 2, team: "Evil"},
             {name: "Liberal", quantity: 4, team: "Good"}
         ]
     },
@@ -44,13 +44,19 @@ const presets: Array<Preset> = [
             {name: "Red Code Master", quantity: 1, team: "Red"},
             {name: "Blue Code Master", quantity: 1, team: "Blue"},
             {name: "Red Team Member", quantity: 2, team: "Red"},
-            {name: "Blue Team Memeber", quantity: 2, team: "Blue"}
+            {name: "Blue Team Member", quantity: 2, team: "Blue"}
         ]
     },
     {
         name: "Two Team (General)", roles: [
             {name: "Players of Team 1", quantity: 5, team: "Team 1"},
             {name: "Players of Team 2", quantity: 5, team: "Team 2"},
+        ]
+    },
+    {
+        name: "Russian Roulette", roles: [
+            {name: "Dead", quantity: 1, team: "Dead"},
+            {name: "Alive", quantity: 999, team: "Alive"},
         ]
     }
 ]
