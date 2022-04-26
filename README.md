@@ -1,5 +1,8 @@
 # RoleAssigner
 
+![jmoore34 - RoleAssigner](https://img.shields.io/static/v1?label=jmoore34&message=RoleAssigner&color=blue&logo=github)
+[![Made with React](https://img.shields.io/badge/React-17-blue?logo=react&logoColor=white)](https://reactjs.org "Go to React homepage")
+
 ## What is it?
 
 [RoleAssigner](https://jmoore34.github.io/RoleAssigner/) is a web app for anonymously divvying up roles in a chat-room like interface. 
