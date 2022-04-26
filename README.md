@@ -34,7 +34,7 @@ Moderators do not recieve roles, and only moderators can see the roles of everyo
 
 ![image](https://user-images.githubusercontent.com/1783464/165177620-3c2aea94-5fc9-41ff-88ba-886f14a0294d.png)
 
-![image](https://user-images.githubusercontent.com/1783464/165181859-9ece024a-c21d-40a2-a105-d83adf8d16dd.png)
+![image](https://user-images.githubusercontent.com/1783464/165391666-49096bb0-5a17-455c-b458-773771e9f4c4.png)
 
 
 ## Technical details
