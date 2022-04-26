@@ -16,7 +16,7 @@ Role-based social deduction card games such as Mafia are generally difficult to 
 
 You can also share a room by copying the URL.
 
-2. Collaboratively set up the roles, or use a preset
+2. Collaboratively set up the roles, or use a preset. Multiple users can edit the roles at the same time (like in Google Docs), and the input is debounced to reduce stress on the server.
 
 ![image](https://user-images.githubusercontent.com/1783464/165176373-39f3364a-d3a8-4323-9692-66559e8df6a2.png)
 
