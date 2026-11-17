@@ -1,0 +1,11 @@
+@RoleAssigner_HostAddress = http://localhost:5272
+
+GET {{RoleAssigner_HostAddress}}/openapi/v1.json
+Accept: application/json
+
+###
+
+GET {{RoleAssigner_HostAddress}}/wf/
+Accept: application/json
+
+###

@@ -1,5 +1,7 @@
 kotlin/.gradle
 kotlin/build
+C#/bin
+C#/obj
 /.idea
 /out
 /build
