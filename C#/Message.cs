@@ -7,14 +7,14 @@ namespace RoleAssigner;
 // meet the minimum requirements for .NET 11, I had to downgrade to a record
 // (product type) where only one field is non-null at a time.
 public record Message(
-    ClientRequestChangeName? Name = null,
-    ClientRequestChangeModOptIn? Mod = null,
-    ServerMessageRoleAssignment? Assignment = null,
-    ServerMessageUsers? Users = null,
-    ServerMessageRoles? Roles = null,
-    ServerMessageUserDelta? UserDelta = null,
-    BidirectionalMessageChat? Chat = null,
-    BidirectionalRoleDelta? RoleDelta = null
+    string? Name = null,
+    bool? Mod = null,
+    RoleAssignment? Assignment = null,
+    List<User>? Users = null,
+    List<Role>? Roles = null,
+    ListDelta<User>? UserDelta = null,
+    Chat? Chat = null,
+    ListDelta<Role>? RoleDelta = null
 );
 
 public record ClientRequestChangeName(string Name);
