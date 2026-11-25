@@ -24,10 +24,10 @@ public class Room
         lock (Users)
         {
             Users[webSocket] = user;
-            webSocket.SendMessage(new ServerMessageUsers(Users.Values.ToList()));
-            Broadcast(new ServerMessageUserDelta(new ListDelta<User>(Users.Count - 1, user)));
+            webSocket.SendMessage(new Message(Users: new ServerMessageUsers(Users.Values.ToList())));
+            Broadcast(new Message(UserDelta: new ServerMessageUserDelta(new ListDelta<User>(Users.Count - 1, user))));
         }
-        webSocket.SendMessage(new ServerMessageRoles(Roles));
+        webSocket.SendMessage(new Message(Roles: new ServerMessageRoles(Roles)));
     }
 
     public void RemoveUserByConnection(WebSocket webSocket)
@@ -36,35 +36,35 @@ public class Room
         {
             int index = GetUserIndex(webSocket);
             Users.Remove(webSocket);
-            Broadcast(new ServerMessageUserDelta(new ListDelta<User>(index, null)));
+            Broadcast(new Message(UserDelta: new ServerMessageUserDelta(new ListDelta<User>(index, null))));
         }
     }
 
     public void ApplyRoleDelta(ListDelta<Role> delta)
     {
         Roles.ApplyPatch(delta);
-        Broadcast(new BidirectionalRoleDelta(delta));
+        Broadcast(new Message(RoleDelta: new BidirectionalRoleDelta(delta)));
     }
 
     public void ChangeUserName(WebSocket requestor, string Name)
     {
         Users[requestor].Name = Name;
         int index = GetUserIndex(requestor);
-        Broadcast(new ServerMessageUserDelta(new ListDelta<User>(index, null)));
+        Broadcast(new Message(UserDelta: new ServerMessageUserDelta(new ListDelta<User>(index, null))));
     }
 
     public void ChangeModOptIn(WebSocket requestor, bool mod)
     {
         Users[requestor].Mod = mod;
         int index = GetUserIndex(requestor);
-        Broadcast(new ServerMessageUserDelta(new ListDelta<User>(index, null)));
+        Broadcast(new Message(UserDelta: new ServerMessageUserDelta(new ListDelta<User>(index, null))));
     }
 
     public void SendChat(WebSocket sender, string message, ChatType type)
     {
         User player = Users[sender];
         Chat chat = new Chat(message, player.Name, type, player.Team, player.Role);
-        Broadcast(new BidirectionalMessageChat(chat));
+        Broadcast(new Message(Chat: new BidirectionalMessageChat(chat)));
     }
 
     public void Broadcast(Message message)

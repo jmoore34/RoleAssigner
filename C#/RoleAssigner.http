@@ -5,7 +5,7 @@ Accept: application/json
 
 ###
 
-GET {{RoleAssigner_HostAddress}}/wf/
+GET {{RoleAssigner_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###

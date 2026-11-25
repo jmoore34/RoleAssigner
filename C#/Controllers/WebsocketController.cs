@@ -35,16 +35,16 @@ public class WebsocketController : ControllerBase
             {
                 room.RemoveUserByConnection(webSocket);
                 break;
-            } else if (message is ClientRequestChangeName changeName)
+            } else if (message.Name is ClientRequestChangeName changeName)
             {
                 room.ChangeUserName(webSocket, changeName.Name);
-            } else if (message is ClientRequestChangeModOptIn optIn)
+            } else if (message.Mod is ClientRequestChangeModOptIn optIn)
             {
                 room.ChangeModOptIn(webSocket, optIn.Mod);
-            } else if (message is BidirectionalMessageChat msg)
+            } else if (message.Chat is BidirectionalMessageChat msg)
             {
                 room.SendChat(webSocket, msg.Chat.Msg, msg.Chat.Type);
-            } else if (message is BidirectionalRoleDelta roleDelta)
+            } else if (message.RoleDelta is BidirectionalRoleDelta roleDelta)
             {
                 room.ApplyRoleDelta(roleDelta.RoleDelta);
             }

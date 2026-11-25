@@ -3,19 +3,18 @@ using System.Text.Json.Serialization;
 
 namespace RoleAssigner;
 
-// JsonUnionTypeStructuralClassifier is expensive and as such it would be more
-// performant to use a closed hierarchy with a "$type" type signifier field;
-// however, doing so would require breaking changes to the message contract.
-[JsonUnion(TypeClassifier = typeof(JsonUnionTypeStructuralClassifier))]
-public union Message(
-    ClientRequestChangeName,
-    ClientRequestChangeModOptIn,
-    ServerMessageRoleAssignment,
-    ServerMessageUsers,
-    ServerMessageRoles,
-    ServerMessageUserDelta,
-    BidirectionalMessageChat,
-    BidirectionalRoleDelta
+// Previously this was a union (sum type); however, since my VPS's CPU doesn't
+// meet the minimum requirements for .NET 11, I had to downgrade to a record
+// (product type) where only one field is non-null at a time.
+public record Message(
+    ClientRequestChangeName? Name = null,
+    ClientRequestChangeModOptIn? Mod = null,
+    ServerMessageRoleAssignment? Assignment = null,
+    ServerMessageUsers? Users = null,
+    ServerMessageRoles? Roles = null,
+    ServerMessageUserDelta? UserDelta = null,
+    BidirectionalMessageChat? Chat = null,
+    BidirectionalRoleDelta? RoleDelta = null
 );
 
 public record ClientRequestChangeName(string Name);
