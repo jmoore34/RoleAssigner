@@ -9,3 +9,5 @@ GET {{RoleAssigner_HostAddress}}/wf/
 Accept: application/json
 
 ###
+
+GET {{RoleAssigner_HostAddress}}/websocket/
