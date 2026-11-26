@@ -30,7 +30,7 @@ public class Room
         }
         webSocket.SendMessage(new Message(Roles: Roles));
         // It might be better to put these welcome messages in the client code
-        webSocket.SendSystemMessage("Once people join, you can create roles (or use a preset) and then hit the assign roles button to secretly give every user a role. (Roles with the smallest quantity are assigned out first.)");
+        webSocket.SendSystemMessage("Once people join, you can create roles (or use a preset) and then hit the assign roles button to give each user a secret role. (Roles with the smallest quantity are assigned out first.)");
         webSocket.SendSystemMessage("You can then use the visibility selector to e.g. make only your team see your messages. (Moderators can see all hidden messages.)");
         foreach (Chat c in ChatHistory)
         {
@@ -45,6 +45,7 @@ public class Room
             int index = GetUserIndex(webSocket);
             Users.Remove(webSocket);
             Broadcast(new Message(UserDelta: new ListDelta<User>(index, null)));
+            Console.WriteLine($"User has left room {RoomId}, new user count: {Users.Count}");
             if (Users.Count == 0)
             {
                 rooms.Remove(RoomId, out _);
@@ -94,7 +95,7 @@ public class Room
         if (message == "/assign")
         {
             AssignRoles(player.Name);
-            sender.SendSystemMessage("Non-moderator users have been secretly issued a role.");
+            sender.SendSystemMessage("Non-moderator users have each been issued a secret role.");
             return;
         }
         Chat chat = new Chat(Msg: message,
@@ -121,6 +122,7 @@ public class Room
             {
                 IEnumerator<KeyValuePair<WebSocket, User>> players = Users
                     .Where(x => !x.Value.Mod)
+                    .Shuffle()
                     .GetEnumerator();
                 foreach (Role role in Roles.OrderBy(x => x.Quantity))
                 {
