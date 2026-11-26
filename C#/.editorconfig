@@ -1,0 +1,6 @@
+[*.cs]
+
+# Force handling all cases of switch
+dotnet_diagnostic.CS8509.severity = error
+# but don't force adding an empty case for enum
+dotnet_diagnostic.CS8524.severity = none

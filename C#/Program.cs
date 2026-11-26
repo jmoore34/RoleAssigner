@@ -7,7 +7,10 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
-app.UseWebSockets();
+app.UseWebSockets(new WebSocketOptions
+{
+    KeepAliveInterval = TimeSpan.FromSeconds(500)
+});
 
 app.UseHttpsRedirection();
 

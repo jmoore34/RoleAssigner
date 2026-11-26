@@ -9,20 +9,39 @@ public static class WebsocketExtensions
 {
     public async static Task<Message?> ReceiveMessage(this WebSocket webSocket)
     {
-        try {
-            using Stream messageStream = WebSocketStream.CreateReadableMessageStream(webSocket);
-            return await JsonSerializer.DeserializeAsync<Message>(messageStream);
-        } catch
+        Console.WriteLine("Receiving message...");
+        try
         {
+            using Stream messageStream = WebSocketStream.CreateReadableMessageStream(webSocket);
+            Message? msg = JsonSerializer.Deserialize<Message>(messageStream, jsonSerializerOptions);
+            Console.WriteLine($"Received message: {JsonSerializer.Serialize(msg, jsonSerializerOptions)}");
+            return msg;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Deserialization failed: {ex}");
             return null;
         }
     }
 
     public async static void SendMessage(this WebSocket webSocket, Message message)
     {
-        string msg = JsonSerializer.Serialize(message, jsonSerializerOptions);
-        ArraySegment<byte> payload = new ArraySegment<byte>(Encoding.UTF8.GetBytes(msg));
-        await webSocket.SendAsync(payload, WebSocketMessageType.Text, true, CancellationToken.None);
+        try
+        {
+            string msg = JsonSerializer.Serialize(message, jsonSerializerOptions);
+            Console.WriteLine($"Sending message: {msg}");
+            ArraySegment<byte> payload = new ArraySegment<byte>(Encoding.UTF8.GetBytes(msg));
+            await webSocket.SendAsync(payload, WebSocketMessageType.Text, true, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Serialization failed: {ex}");
+        }
+    }
+
+    public static void SendSystemMessage(this WebSocket webSocket, string message)
+    {
+        webSocket.SendMessage(new Message(Chat: new Chat(message, "SYSTEM", ChatType.System, "SYSTEM", "SYSTEM")));
     }
 
     private static JsonSerializerOptions jsonSerializerOptions = new()

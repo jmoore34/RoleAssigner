@@ -40,7 +40,7 @@ public class User
     public string Role { get; set; } = "No role";
     public string Team { get; set; } = "No team";
 }
-public record Role(string Name, string Quantity, string Team);
+public record Role(string Name, int Quantity, string Team);
 public record ListDelta<T>(int Index, T? Edit);
 
 

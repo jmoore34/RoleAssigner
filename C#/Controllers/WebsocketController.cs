@@ -28,6 +28,7 @@ public class WebsocketController : ControllerBase
         Room room = Room.GetById(roomCode);
         room.AddNewUser(webSocket);
 
+        try {
         while (true)
         {
             Message? message = await webSocket.ReceiveMessage();
@@ -47,7 +48,15 @@ public class WebsocketController : ControllerBase
             } else if (message.RoleDelta != null)
             {
                 room.ApplyRoleDelta(message.RoleDelta);
+            } else if (message.Roles != null)
+            {
+                room.SetRoles(message.Roles);
             }
+        }
+        } catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+            room.RemoveUserByConnection(webSocket);
         }
 
         await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Event loop end", CancellationToken.None);
