@@ -5,11 +5,11 @@
 
 ## What is it?
 
-[RoleAssigner](https://jmoore34.github.io/RoleAssigner/) is a web app for anonymously divvying up roles in a chat-room like interface. 
+[RoleAssigner.com](https://roleassigner.com/) is a web app for anonymously divvying up roles in a chat-room like interface.
 
 ### Background
 
-Role-based social deduction card games such as Mafia are generally difficult to play online because they necessitate anonymous assignment of roles as well as covert intra-team communicaton. Role assigner provides a free solutuion that addresses both these problems. 
+Role-based social deduction card games such as Mafia are generally difficult to play online because they necessitate anonymous assignment of roles as well as covert intra-team communicaton. Role assigner provides a free solutuion that addresses both these problems.
 
 ### How to use
 
@@ -42,4 +42,4 @@ Moderators do not recieve roles, and only moderators can see the roles of everyo
 
 ## Technical details
 
-RoleAssigner was developed by Jonathan Moore and Christopher Sweetman. The websocket backend was developed in Kotlin using the Ktor web framework, and the frontend was written in TypeScript using React, styled-components, and Material UI.
+RoleAssigner was developed by Jonathan Moore and Christopher Sweetman. The websocket backend was developed in Kotlin using the Ktor web framework, with a full feature-parity C# ASP.NET version of the backend added later, and the frontend was written in TypeScript using React, styled-components, and Material UI.
